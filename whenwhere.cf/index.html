@@ -57,8 +57,9 @@ function direction(lat1,long1,lat2,long2) {
 	function deg2rad(deg) {
 		  return deg * (Math.PI/180)
 	}
-	function update() {
-		navigator.geolocation.getCurrentPosition(function(location) {
+	navigator.geolocation.getCurrentPosition(function(location) {
+		function update() {
+			getloc = true;
 			length=4;
 			acc = location.coords.accuracy;
 			if (acc < 15) {
@@ -89,9 +90,9 @@ function direction(lat1,long1,lat2,long2) {
 				console.log(e);
 				document.getElementById("nav2").innerHTML=nav2default;
 			}
-		});
-	}
-	setInterval(update, 1000);
+		}
+		setInterval(update, 1000);
+	});
 
 // This is the "Offline copy of pages" service worker
 

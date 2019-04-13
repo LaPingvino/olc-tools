@@ -321,31 +321,31 @@
    *     area of the code.
    * @throws {Exception} If the code is not valid.
    */
-//d  var decode = OpenLocationCode.decode = function(code) {
-//d    if (!isFull(code)) {
-//d      throw ('IllegalArgumentException: ' +
-//d          'Passed Open Location Code is not a valid full code: ' + code);
-//d    }
-//d    // Strip out separator character (we've already established the code is
-//d    // valid so the maximum is one), padding characters and convert to upper
-//d    // case.
-//d    code = code.replace(SEPARATOR_, '');
-//d    code = code.replace(new RegExp(PADDING_CHARACTER_ + '+'), '');
-//d    code = code.toUpperCase();
-//d    // Decode the lat/lng pair component.
-//d    var codeArea = decodePairs(code.substring(0, PAIR_CODE_LENGTH_));
-//d    // If there is a grid refinement component, decode that.
-//d    if (code.length <= PAIR_CODE_LENGTH_) {
-//d      return codeArea;
-//d    }
-//d    var gridArea = decodeGrid(code.substring(PAIR_CODE_LENGTH_, MAX_DIGIT_COUNT));
-//d    return CodeArea(
-//d      codeArea.latitudeLo + gridArea.latitudeLo,
-//d      codeArea.longitudeLo + gridArea.longitudeLo,
-//d      codeArea.latitudeLo + gridArea.latitudeHi,
-//d      codeArea.longitudeLo + gridArea.longitudeHi,
-//d      codeArea.codeLength + gridArea.codeLength);
-//d  };
+  var decode = OpenLocationCode.decode = function(code) {
+    if (!isFull(code)) {
+      throw ('IllegalArgumentException: ' +
+          'Passed Open Location Code is not a valid full code: ' + code);
+    }
+    // Strip out separator character (we've already established the code is
+    // valid so the maximum is one), padding characters and convert to upper
+    // case.
+    code = code.replace(SEPARATOR_, '');
+    code = code.replace(new RegExp(PADDING_CHARACTER_ + '+'), '');
+    code = code.toUpperCase();
+    // Decode the lat/lng pair component.
+    var codeArea = decodePairs(code.substring(0, PAIR_CODE_LENGTH_));
+    // If there is a grid refinement component, decode that.
+    if (code.length <= PAIR_CODE_LENGTH_) {
+      return codeArea;
+    }
+    var gridArea = decodeGrid(code.substring(PAIR_CODE_LENGTH_, MAX_DIGIT_COUNT));
+    return CodeArea(
+      codeArea.latitudeLo + gridArea.latitudeLo,
+      codeArea.longitudeLo + gridArea.longitudeLo,
+      codeArea.latitudeLo + gridArea.latitudeHi,
+      codeArea.longitudeLo + gridArea.longitudeHi,
+      codeArea.codeLength + gridArea.codeLength);
+  };
 
   /**
    * Recover the nearest matching code to a specified location.
@@ -615,19 +615,19 @@
    *     but with the separator removed.
    * @return {OpenLocationCode.CodeArea} The code area object.
    */
-//d  var decodePairs = function(code) {
-//d    // Get the latitude and longitude values. These will need correcting from
-//d    // positive ranges.
-//d    var latitude = decodePairsSequence(code, 0);
-//d    var longitude = decodePairsSequence(code, 1);
-//d    // Correct the values and set them into the CodeArea object.
-//d    return new CodeArea(
-//d        latitude[0] - LATITUDE_MAX_,
-//d        longitude[0] - LONGITUDE_MAX_,
-//d        latitude[1] - LATITUDE_MAX_,
-//d        longitude[1] - LONGITUDE_MAX_,
-//d        code.length);
-//d  };
+  var decodePairs = function(code) {
+    // Get the latitude and longitude values. These will need correcting from
+    // positive ranges.
+    var latitude = decodePairsSequence(code, 0);
+    var longitude = decodePairsSequence(code, 1);
+    // Correct the values and set them into the CodeArea object.
+    return new CodeArea(
+        latitude[0] - LATITUDE_MAX_,
+        longitude[0] - LONGITUDE_MAX_,
+        latitude[1] - LATITUDE_MAX_,
+        longitude[1] - LONGITUDE_MAX_,
+        code.length);
+  };
 
   /**
    * Decode either a latitude or longitude sequence.
@@ -642,16 +642,16 @@
    *     upper range in decimal degrees. These are in positive ranges and will
    *     need to be corrected appropriately.
    */
-//d  var decodePairsSequence = function(code, offset) {
-//d    var i = 0;
-//d    var value = 0;
-//d    while (i * 2 + offset < code.length) {
-//d      value += CODE_ALPHABET_.indexOf(code.charAt(i * 2 + offset)) *
-//d          PAIR_RESOLUTIONS_[i];
-//d      i += 1;
-//d    }
-//d    return [value, value + PAIR_RESOLUTIONS_[i - 1]];
-//d  };
+  var decodePairsSequence = function(code, offset) {
+    var i = 0;
+    var value = 0;
+    while (i * 2 + offset < code.length) {
+      value += CODE_ALPHABET_.indexOf(code.charAt(i * 2 + offset)) *
+          PAIR_RESOLUTIONS_[i];
+      i += 1;
+    }
+    return [value, value + PAIR_RESOLUTIONS_[i - 1]];
+  };
 
   /**
    * Decode the grid refinement portion of an OLC code.
@@ -659,28 +659,28 @@
    * @param {string} code The grid refinement section of a code.
    * @return {OpenLocationCode.CodeArea} The area of the code.
    */
-//d  var decodeGrid = function(code) {
-//d    var latitudeLo = 0.0;
-//d    var longitudeLo = 0.0;
-//d    var latPlaceValue = GRID_SIZE_DEGREES_;
-//d    var lngPlaceValue = GRID_SIZE_DEGREES_;
-//d    var i = 0;
-//d    while (i < code.length) {
-//d      var codeIndex = CODE_ALPHABET_.indexOf(code.charAt(i));
-//d      var row = Math.floor(codeIndex / GRID_COLUMNS_);
-//d      var col = codeIndex % GRID_COLUMNS_;
-//d
-//d      latPlaceValue /= GRID_ROWS_;
-//d      lngPlaceValue /= GRID_COLUMNS_;
-//d
-//d      latitudeLo += row * latPlaceValue;
-//d      longitudeLo += col * lngPlaceValue;
-//d      i += 1;
-//d    }
-//d    return CodeArea(
-//d        latitudeLo, longitudeLo, latitudeLo + latPlaceValue,
-//d        longitudeLo + lngPlaceValue, code.length);
-//d  };
+  var decodeGrid = function(code) {
+    var latitudeLo = 0.0;
+    var longitudeLo = 0.0;
+    var latPlaceValue = GRID_SIZE_DEGREES_;
+    var lngPlaceValue = GRID_SIZE_DEGREES_;
+    var i = 0;
+    while (i < code.length) {
+      var codeIndex = CODE_ALPHABET_.indexOf(code.charAt(i));
+      var row = Math.floor(codeIndex / GRID_COLUMNS_);
+      var col = codeIndex % GRID_COLUMNS_;
+
+      latPlaceValue /= GRID_ROWS_;
+      lngPlaceValue /= GRID_COLUMNS_;
+
+      latitudeLo += row * latPlaceValue;
+      longitudeLo += col * lngPlaceValue;
+      i += 1;
+    }
+    return CodeArea(
+        latitudeLo, longitudeLo, latitudeLo + latPlaceValue,
+        longitudeLo + lngPlaceValue, code.length);
+  };
 
   /**
    * Coordinates of a decoded Open Location Code.

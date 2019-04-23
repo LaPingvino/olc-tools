@@ -57,10 +57,10 @@ function direction(lat1,long1,lat2,long2) {
 	function deg2rad(deg) {
 		  return deg * (Math.PI/180)
 	}
-	navigator.geolocation.getCurrentPosition(function(location) {
-		function update() {
-			getloc = true;
+	dot=".";
+	navigator.geolocation.watchPosition(function(location) {
 			length=4;
+			if (dot == "") {dot = "."} else {dot = ""}
 			acc = location.coords.accuracy;
 			if (acc < 15) {
 				length = 11;
@@ -75,8 +75,9 @@ function direction(lat1,long1,lat2,long2) {
 			document.getElementById("code").title=code;
 			document.getElementById("region").innerHTML=code.substring(0,4);
 			document.getElementById("local").innerHTML=code.substring(4);
-			document.getElementById("accuracy").innerHTML="within "+Math.floor(acc)+" meters of accuracy";
+			document.getElementById("accuracy").innerHTML="within "+Math.floor(acc)+" meters of accuracy"+dot;
 			document.getElementById("map").href="https://plus.codes/map/"+document.getElementById("navinput").value;
+			document.getElementById("navinput").value = document.getElementById("navinput").value.replace(" ", "");
 			
 			try {
 				lat1 = location.coords.latitude;
@@ -90,8 +91,12 @@ function direction(lat1,long1,lat2,long2) {
 				console.log(e);
 				document.getElementById("nav2").innerHTML=nav2default;
 			}
-		}
-		setInterval(update, 1000);
+	}, function(err) {
+			console.warn('ERROR(' + err.code + '): ' + err.message);
+	},{
+			  enableHighAccuracy: true,
+			  timeout: 1000,
+			  maximumAge: 0
 	});
 
 // This is the "Offline copy of pages" service worker

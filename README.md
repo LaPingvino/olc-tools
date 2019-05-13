@@ -10,3 +10,7 @@ Copy the contents of bookmarklet.txt to a bookmark in your browser to enable sea
 ## WhenWhere
 
 A simple PWA that runs over IPFS and can be installed for completely offline navigation using OLC. Try it out at [whenwhere.cf](https://whenwhere.cf)
+
+## OLN
+
+OLN is short for Open Location Network or Open Listening Network. It's a project to create a worldwide community overlay using OLC as a tagging and indexing tool together with hashtags to give people access to information that is relevant to them.

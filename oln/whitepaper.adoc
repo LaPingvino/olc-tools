@@ -1,0 +1,13 @@
+= OLN: creating a worldwide local first communication overlay
+Joop Kiefte <joop@kiefte.net>
+v0.1, 2019-05-13
+
+:toc:
+
+== Purpose
+
+This whitepaper aims to provide the knowledge foundation for understanding the basic ideas of and implementing OLN. It does so by explaining the problems it tries to solve, describing the basic building blocks and then how it all fits together. It also tries to provide suggestions for developing the concept from this foundation on.
+
+== Name and basic idea
+
+OLN is short for Open Location Network or Open Listening Network, because while location is an important element of its inspiration and implementation, it is still nevertheless optional to provide a location with messages. The basic idea is to provide a network similar in implementation to the simplicity of IRC, the free form participation of Twitter, the decentrality of Peer-to-Peer networks and the free form of implementation of the web itself, using Open Location Code as invented by Google together with hashtags and other standard form information, open to be expanded over time, in free form messages, to provide access to messages and messaging relevant to location and purpose, which can be used to implement Open Source alternatives for location and interest based services over time, and right from the start for those who are capable enough to understand the message format and use a simple search system.

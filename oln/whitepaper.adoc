@@ -1,6 +1,6 @@
 = OLN: creating a worldwide local first communication overlay
 Joop Kiefte <joop@kiefte.net>
-v0.1, 2019-05-13
+v0.2, 2019-05-13
 
 :toc:
 
@@ -10,4 +10,24 @@ This whitepaper aims to provide the knowledge foundation for understanding the b
 
 == Name and basic idea
 
-OLN is short for Open Location Network or Open Listening Network, because while location is an important element of its inspiration and implementation, it is still nevertheless optional to provide a location with messages. The basic idea is to provide a network similar in implementation to the simplicity of IRC, the free form participation of Twitter, the decentrality of Peer-to-Peer networks and the free form of implementation of the web itself, using Open Location Code as invented by Google together with hashtags and other standard form information, open to be expanded over time, in free form messages, to provide access to messages and messaging relevant to location and purpose, which can be used to implement Open Source alternatives for location and interest based services over time, and right from the start for those who are capable enough to understand the message format and use a simple search system.
+OLN is short for *Open Location Network* or *Open Listening Network*, because while location is an important element of its inspiration and implementation, it is still nevertheless optional to provide a location with messages. The basic idea is to provide a network similar in implementation to the simplicity of IRC, the free form participation of Twitter, the decentrality of Peer-to-Peer networks and the free form of implementation of the web itself, using Open Location Code as invented by Google together with hashtags and other standard form information, open to be expanded over time, in free form messages, to provide access to messages and messaging relevant to location and purpose, which can be used to implement Open Source alternatives for location and interest based services over time, and right from the start for those who are capable enough to understand the message format and use a simple search system.
+
+== Use cases / problems OLN tries to solve
+
+=== Location based services
+
+There are many commercial products that try to solve very similar problems, but all with a slightly different focus and a slightly different way: products like Uber, BlaBlaCar, Couchsurfing and Ebay all have an element of location in them, and basically replace the town square or community bulletin bord of former times. Providing a solution for these problems that the commercial products capitalize on with free software is hard, because they all depend on having a database backend that has to reside in some server. As such, using new services in these fields relies on trust that someone will keep maintaining those databases and has a scaling problem, that will ask more and more money. _OLN aims to be a bulletin board like backend for reliably implementing a solution for these needs_
+
+=== Finding people with a common interest
+
+When a new idea arises, it can be really hard to find other people that are interested in the same thing and can work with you to bring the ideas to fruction. Also for existing ideas and interest groups, it can be hard to find people you can share this with either locally or further away. Think for example people to play chess with, people who speak a language you would like to excercise, people you can change the last fashionable trading cards with, or very old ones. _OLN aims to enable searching for what you are specifically interested in, and keep up to date about that_
+
+=== Ephemeral and complex messaging
+
+Sometimes only for a very short time you need the ability to communicate about something. Our real life conversations tend to be ranging from very short-lived to covering our lifetimes. Our current messaging systems tend to be really focused on person to person communication and has barely support for keeping a conversation alive about something specific and splitting it off randomly in different sub-groups as happens in real life. Communication is not linear but rather branching out and sometimes merging in. _OLN aims to provide a flexible way to build ephemeral and complex communication, while not limiting you to conserve messages and use them your life long_
+
+=== More...
+
+This list of use cases is not exhaustive and I expect this list to be expanded over time
+
+

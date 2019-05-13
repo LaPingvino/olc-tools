@@ -10,7 +10,3 @@ Copy the contents of bookmarklet.txt to a bookmark in your browser to enable sea
 ## WhenWhere
 
 A simple PWA that runs over IPFS and can be installed for completely offline navigation using OLC. Try it out at [whenwhere.cf](https://whenwhere.cf)
-
-## OLC Proximity [in progress, unfinished]
-
-Javascript code to calculate a series of plus codes that can be used to tag and/or search posts that use OLC for location tagging. This combines the idea of going from more to less precise and to calculate a configurable border around this list of codes, from more specific to less specific and stopping when the desired amount of post has been reached, thus providing an easy way to sort posts on proximity and relevancy to a given location while adding the option to be more or less precise in the first place.

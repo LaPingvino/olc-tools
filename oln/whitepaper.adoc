@@ -1,6 +1,6 @@
 = OLN: creating a worldwide local first communication overlay
 Joop Kiefte <joop@kiefte.net>
-v0.2, 2019-05-13
+v0.3, 2019-05-13
 
 :toc:
 
@@ -30,4 +30,24 @@ Sometimes only for a very short time you need the ability to communicate about s
 
 This list of use cases is not exhaustive and I expect this list to be expanded over time
 
+== Building blocks
 
+The building blocks of OLN are:
+
+* Free form text messages, basically like Twitter messages, containing
+** OLC (aka Plus codes) to indicate locations with semi-random precision
+** Hashtags to filter down messages on purpose of the message
+** Optional username: syntax to explain who is writing
+** @mentioning these usernames
+** !partialhash to reference to another message by SHA1-hash as a specific response
+** Timestamps, currency references etc according to the specific application of the message
+* A system to index these messages on OLC, hashtag, username and possibly more up to the implementor
+** OLC index elements are also referred to by their direct parent regions as existing
+** The indexed elements can have a TTL for common nodes, or be saved indefinitely e.g. when they agree with specific conditions
+* A system to pass these messages on to other participants in the network
+* An API to query a node in the system by one or more OLC and hashtags
+** This system can ask other nodes for missing information
+** A simple algorithm is used to retrieve and sort OLC tagged data that obeys the search query going from more to less precise until a number of results, e.g. 100, is reached
+* An ecosystem of frontend apps that provide access to the API of participating nodes
+** This can be anything from very specific to basically a block explorer or fancy chat app
+** It's preferable to create compatibility with existing similar apps

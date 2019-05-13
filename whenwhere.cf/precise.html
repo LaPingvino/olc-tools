@@ -1,8 +1,6 @@
 <title>whenwhere.cf - Dead simple lightweight communication and coordination</title>
-<meta name="viewport" content="initial-scale=1">
-<meta name="theme-color" value="grey">
+<meta name="viewport" content="initial-scale=0.7">
 <link rel="manifest" href="manifest.json">
-<link rel="canonical" href="https://whenwhere.cf">
 <style>
 @import url('https://fonts.googleapis.com/css?family=Roboto+Slab');
 div, #navinput {
@@ -20,7 +18,7 @@ div, #navinput {
 }
 </style>
 <div id="nowat">Your phone thinks you are at</div>
-<div id="code" onclick="location.hash=this.title;location.reload();"><span id="region">0000</span><span id="local">0000+00</span></div>
+<div id="code" onclick="location.hash=this.title;location.reload();"><span id="region">0000</span> <span id="local">0000+00</span></div>
 <div id="accuracy">but we are still loading the page... If this takes too long, try to open in a true webbrowser and on https.</div>
 <div id="nav"><span id="nav1">The code </span><input id="navinput" placeholder="go where?"><span id="nav2"> is not something I can navigate you to. Try entering a plus code.</span></div>
 <div id="more">Get a <a id="map" href="https://plus.codes/map/">full map</a> or find the code for a location and <a href="https://plus.codes">more information about Plus-codes</a>. If the part after the + in your code changes all the time while you are standing still, your GPS is probably not accurate enough for navigation. I managed to remedy this with the "inject time" option in <a href="https://play.google.com/store/apps/details?id=com.android.gpstest">the Open Source GPS test application</a>. Depending on the model of your phone, there might be different ways here to fix your GPS.</div>
@@ -61,18 +59,7 @@ function direction(lat1,long1,lat2,long2) {
 	}
 	dot=".";
 	navigator.geolocation.watchPosition(function(location) {
-			length=4;
-			if (dot == "") {dot = "."} else {dot = ""}
-			acc = location.coords.accuracy;
-			if (acc < 15) {
-				length = 11;
-			} else if (acc < 300) {
-				length = 10;
-			} else if (acc < 6000) {
-				length = 8;
-			} else if (acc < 120000) {
-				length = 6;
-			}
+			length=13;
 			code = OpenLocationCode.encode(location.coords.latitude, location.coords.longitude, length)
 			document.getElementById("code").title=code;
 			document.getElementById("region").innerHTML=code.substring(0,4);

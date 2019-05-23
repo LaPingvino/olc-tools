@@ -1,2 +1,3 @@
-input=prompt("Enter OLC:");
-location.href= "https://www.openstreetmap.org/search?query=" + OpenLocationCode.decode(input).latitudeCenter + ",%20" + OpenLocationCode.decode(input).longitudeCenter;
+let input=prompt("Enter OLC:");
+let c = OpenLocationCode.decode(input);
+location.href= "https://www.openstreetmap.org/search?query=" + c.latitudeCenter + ",%20" + c.longitudeCenter;

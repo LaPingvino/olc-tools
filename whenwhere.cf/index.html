@@ -7,10 +7,10 @@
 @import url('https://fonts.googleapis.com/css?family=Roboto+Slab');
 div, #navinput {
 	font-family: 'Roboto Slab', sans-serif;
-	font-size: 2em;
+	font-size: 1.5em;
 }
 #code {
-	font-size: 4em;
+	font-size: 3em;
 }
 #local {
 	font-weight: bold;
@@ -20,7 +20,7 @@ div, #navinput {
 }
 </style>
 <div id="nowat">Your phone thinks you are at</div>
-<div id="code" onclick="location.hash=this.title;location.reload();"><span id="region">0000</span><span id="local">0000+00</span></div>
+<div id="code" onclick="location.hash=this.title;location.reload();"><span id="region">0000</span><wbr><span id="local">0000+00</span></div>
 <div id="accuracy">but we are still loading the page... If this takes too long, try to open in a true webbrowser and on https.</div>
 <div id="nav"><span id="nav1">The code </span><input id="navinput" placeholder="go where?"><span id="nav2"> is not something I can navigate you to. Try entering a plus code.</span></div>
 <div id="more">Get a <a id="map" href="https://plus.codes/map/">full map</a> or find the code for a location and <a href="https://plus.codes">more information about Plus-codes</a>. If the part after the + in your code changes all the time while you are standing still, your GPS is probably not accurate enough for navigation. I managed to remedy this with the "inject time" option in <a href="https://play.google.com/store/apps/details?id=com.android.gpstest">the Open Source GPS test application</a>. Depending on the model of your phone, there might be different ways here to fix your GPS.</div>
@@ -105,8 +105,6 @@ function direction(lat1,long1,lat2,long2) {
 
 // Add this below content to your HTML page, or add the js file to your page at the very top to register service worker
 
-// Check compatibility for the browser we're running this in
-if ("serviceWorker" in navigator) {
   if (navigator.serviceWorker.controller) {
     console.log("[PWA Builder] active service worker found, no need to register");
   } else {
@@ -119,6 +117,4 @@ if ("serviceWorker" in navigator) {
         console.log("[PWA Builder] Service worker has been registered for scope: " + reg.scope);
       });
   }
-}
-
 	</script>

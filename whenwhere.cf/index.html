@@ -1,6 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
 <title>whenwhere.cf - Dead simple lightweight communication and coordination</title>
 <meta name="viewport" content="initial-scale=1">
-<meta name="theme-color" value="grey">
+<meta name="theme-color" value="white">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Weather PWA">
+<link rel="apple-touch-icon" href="/images/icons/icon-152x152.png">
 <link rel="manifest" href="manifest.json">
 <link rel="canonical" href="https://whenwhere.cf">
 <style>
@@ -19,15 +26,28 @@ div, #navinput {
 	width: 13ex;
 }
 </style>
-<div id="nowat">Your phone thinks you are at</div>
-<div id="code" onclick="location.hash=this.title;location.reload();"><span id="region">0000</span><wbr><span id="local">0000+00</span></div>
-<div id="accuracy">but we are still loading the page... If this takes too long, try to open in a true webbrowser and on https.</div>
-<div id="nav"><span id="nav1">The code </span><input id="navinput" placeholder="go where?"><span id="nav2"> is not something I can navigate you to. Try entering a plus code.</span></div>
-<div id="more">Get a <a id="map" href="https://plus.codes/map/">full map</a> or find the code for a location and <a href="https://plus.codes">more information about Plus-codes</a>. If the part after the + in your code changes all the time while you are standing still, your GPS is probably not accurate enough for navigation. I managed to remedy this with the "inject time" option in <a href="https://play.google.com/store/apps/details?id=com.android.gpstest">the Open Source GPS test application</a>. Depending on the model of your phone, there might be different ways here to fix your GPS.</div>
+</head>
+<body>
+<div id="nowat">OLC for your location:</div>
+<div id="code" onclick="share(this.title)"><span id="region">0000</span><wbr><span id="local">0000+00</span></div>
+<div id="accuracy">Please be patient. If this stays here too long, something is wrong.</div>
+<div id="nav"><span id="nav1">Enter destination OLC:<br /></span><input id="navinput" placeholder="go where?"><span id="nav2"><br />(they are also called Plus codes)</span></div>
+<p>Cannot find your friends at the party? Need help but nothing around you communicates reliably where you are? Internet really bad or non-existant? We got you covered! Communicate this code to e.g. your friends and they can find it with most mobile navigation apps (Google Apps, Maps.me, Mapy.cz, OSMAnd, this app...)! If you are close or you add a reference point close to you that people know how to find, the bold part of the code is usually enough!</p>
+<hr />
+<div id="more"><ul><li><a id="navapp" href="https://www.google.com/maps/@?api=1&map_action=map">Navigate with other app</a></li>
+		<li><a id="map" href="https://plus.codes/map/">Full map around the OLC</a></li>
+		<li>If someone is already close to you, it's enough to give just the bold part of the code. You can do a <a id="refhref" href="https://nominatim.openstreetmap.org/reverse.php?format=html&zoom=12">reverse lookup on Nominatim</a> to find out where you are close to, and use this to get people to the right region first.</li>
+		<li><a href="https://plus.codes">Get more information about Plus-codes</a></li>
+	</div>
+	<p>If the part after the + in your code changes all the time while you are standing still, your GPS is probably not accurate enough for navigation. I managed to remedy this with the "inject time" option in <a href="https://play.google.com/store/apps/details?id=com.android.gpstest">the Open Source GPS test application</a>. Depending on the model of your phone, there might be different ways here to get better accuracy for your GPS.</p>
+	<p><b>Did you know?</b> The .cf domain name of this website is registered for free at freenom.com. The CF country code is from the Central African Republic, and African, Asian and Middle East countries are some of the places where many streets and houses without official naming and numbering can be found. Google Zürich invented the system used here to enable having an address even when official instances didn't assign any to you. Its usage is fully free (as in free beer, free speech and free software) and the system is really easy to use. The only significant place that doesn't support OLC in any form yet is the official openstreetmap website. I don't endorse blackmailing those people though, they seem to have legitimate reasons not to support it (yet?).</p>
 	<script src="openlocationcode.min.js"></script>
 	<script>
+if ((!location.port || location.port == "80") && location.protocol != 'https:') {
+  location.protocol = 'https:';
+}
+		document.getElementById("navinput").value=localStorage.getItem(location.pathname) || location.hash.substring(1);
 		nav2default = document.getElementById("nav2").innerHTML;
-		document.getElementById("navinput").value=location.hash.substring(1);
 		function dist(lat1,lon1,lat2,lon2) {
 			  var R = 6371; // Radius of the earth in km
 			  var dLat = deg2rad(lat2-lat1);  // deg2rad below
@@ -56,6 +76,34 @@ function direction(lat1,long1,lat2,long2) {
 	return r
 }
 
+function share(code) {
+var webShare = 'share' in navigator;
+if ( webShare ) {
+
+    var share = {
+        title: code,
+        text: "My location is "+code,
+        url: location.href.match(/^[^#]*/)[0]+"#"+code
+    };
+
+    navigator.share( share )
+        .then( function () {
+            console.log( 'Successful share' )
+        } )
+        .catch( function ( error ) {
+            console.log( 'Error sharing', error )
+	    location.hash=code;location.reload();
+        } );
+
+}
+}
+
+function resolve(code, lat, lon) {
+	var olc = /[023456789CFGHJMPQRVWX]{0,8}\+[23456789CFGHJMPQRVWX]{0,3}/i;
+	res = OpenLocationCode.decode(OpenLocationCode.recoverNearest(code.match(olc)[0],lat,lon));
+	return res
+}
+
 	function deg2rad(deg) {
 		  return deg * (Math.PI/180)
 	}
@@ -79,16 +127,17 @@ function direction(lat1,long1,lat2,long2) {
 			document.getElementById("local").innerHTML=code.substring(4);
 			document.getElementById("accuracy").innerHTML="within "+Math.floor(acc)+" meters of accuracy"+dot;
 			document.getElementById("map").href="https://plus.codes/map/"+document.getElementById("navinput").value;
-			document.getElementById("navinput").value = document.getElementById("navinput").value.replace(/ /g, "");
-			
+			document.getElementById("refhref").href="https://nominatim.openstreetmap.org/reverse.php?format=html&lat="+location.coords.latitude+"&lon="+location.coords.longitude+"&zoom=12";
 			try {
 				lat1 = location.coords.latitude;
 				long1 = location.coords.longitude;
-				destination = OpenLocationCode.decode(OpenLocationCode.recoverNearest(document.getElementById("navinput").value,lat1,long1));
+				destination = resolve(document.getElementById("navinput").value, lat1, long1);
+				document.getElementById("navapp").href="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(document.getElementById("navinput").value);
 				lat2 = destination.latitudeCenter;
 				long2 = destination.longitudeCenter;
 				document.getElementById("nav2").innerHTML = " is about " + dist(lat1,long1,lat2,long2) + "m away from you (" + direction(lat1,long1,lat2,long2)+")";
 				location.hash = document.getElementById("navinput").value;
+				localStorage.setItem(location.pathname, location.hash);
 			} catch (e) {
 				console.log(e);
 				document.getElementById("nav2").innerHTML=nav2default;
@@ -97,24 +146,20 @@ function direction(lat1,long1,lat2,long2) {
 			console.warn('ERROR(' + err.code + '): ' + err.message);
 	},{
 			  enableHighAccuracy: true,
-			  timeout: 1000,
-			  maximumAge: 0
+			  timeout: 3000,
+			  maximumAge: 20000
 	});
 
-// This is the "Offline copy of pages" service worker
-
-// Add this below content to your HTML page, or add the js file to your page at the very top to register service worker
-
-  if (navigator.serviceWorker.controller) {
-    console.log("[PWA Builder] active service worker found, no need to register");
-  } else {
-    // Register the service worker
-    navigator.serviceWorker
-      .register("pwabuilder-sw.js", {
-        scope: "./"
-      })
-      .then(function (reg) {
-        console.log("[PWA Builder] Service worker has been registered for scope: " + reg.scope);
-      });
-  }
 	</script>
+	<script>
+// register serviceworker
+
+if ('serviceWorker' in navigator) {
+	  navigator.serviceWorker
+	           .register('service-worker.js')
+	           .then(function () { console.log('Service Worker Registered'); });
+}
+
+	</script>
+</body>
+</html>

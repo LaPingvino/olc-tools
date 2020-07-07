@@ -57,13 +57,15 @@ function messages(olctag, elem, local) {
 	let m = 100;
 	let d = 0;
 	function getLocData(){
+		let msgtag = getdtag(olctag, d);
 		hivejs.api.getDiscussionsByCreated({
-			tag: getdtag(olctag, d),
+			tag: msgtag,
 			limit: 10,
 		}, function(err, result) {
 			console.log(err, result);
 			for (var i = 0; i < result.length; i++) {
-				elem.innerHTML += '<div class="message">' + markdown.toHTML(result[i].body) + '</div>';
+				elem.innerHTML += '<div class="message"><small>#' + msgtag + ' <a href="https://hive.blog' +
+					result[i].url + '">Open on hive.blog</a></small>'+ markdown.toHTML(result[i].body) + '</div>';
 			}
 			m -= result.length;
 		});

@@ -3,7 +3,7 @@
 <head>
 <title>whenwhere.cf - Dead simple lightweight communication and coordination</title>
 <script>
-	if (window.location.protocol.substring(0,5) != "https" && window.location.hostname == "whenwhere.cf") {window.location.protocol = "https:"};
+	if (window.location.protocol.substring(0,5) != "https" && (window.location.hostname == "whenwhere.cf" || window.location.hostname == "www.whenwhere.cf" || window.location.hostname == "donde.ir" || window.location.hostname == "www.donde.ir") ) {window.location.protocol = "https:"};
 </script>
 	<script src="hivejs.min.js"></script>
 	<script src="markdown.min.js"></script>
@@ -48,6 +48,7 @@ div, #navinput {
 		<li><a id="map" href="https://plus.codes/map/">Full map around the OLC</a></li>
 		<li>If someone is already close to you, it's enough to give just the bold part of the code. You can do a <a id="refhref" href="https://nominatim.openstreetmap.org/reverse.php?format=html&zoom=12">reverse lookup on Nominatim</a> to find out where you are close to, and use this to get people to the right region first.</li>
 		<li><a href="https://plus.codes">Get more information about Plus-codes</a></li>
+		<li><a href="precise.html">More precise version for e.g. slum navigation</a></li>
 	</div>
 	<hr />
 	<div id="messages">
@@ -72,7 +73,7 @@ div, #navinput {
 			  return Math.floor(d*1000); //return round distance in meters
 		}
 	
-function direction(lat1,long1,lat2,long2) {
+function dirfunc(lat1,long1,lat2,long2) {
 	t = 0.000125
 	n = lat1-lat2;
 	e = long1-long2;
@@ -132,7 +133,7 @@ function resolve(code, lat, lon) {
 				length = 6;
 			}
 			code = OpenLocationCode.encode(location.coords.latitude, location.coords.longitude, length);
-			messages('geo'+code.substring(0,6), document.getElementById("messages"));
+			var showcode = code;
 			document.getElementById("code").title=code;
 			document.getElementById("region").innerHTML=code.substring(0,4);
 			document.getElementById("local").innerHTML=code.substring(4);
@@ -143,16 +144,18 @@ function resolve(code, lat, lon) {
 				lat1 = location.coords.latitude;
 				long1 = location.coords.longitude;
 				destination = resolve(document.getElementById("navinput").value, lat1, long1);
+				showcode = OpenLocationCode.encode(destination.latitudeCenter,destination.longitudeCenter,6);
 				document.getElementById("navapp").href="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(document.getElementById("navinput").value);
 				lat2 = destination.latitudeCenter;
 				long2 = destination.longitudeCenter;
-				document.getElementById("nav2").innerHTML = " is about " + dist(lat1,long1,lat2,long2) + "m away from you (" + direction(lat1,long1,lat2,long2)+")";
+				document.getElementById("nav2").innerHTML = " is about " + dist(lat1,long1,lat2,long2) + "m away from you (" + dirfunc(lat1,long1,lat2,long2)+")";
 				location.hash = document.getElementById("navinput").value;
 				localStorage.setItem(location.pathname, location.hash);
 			} catch (e) {
 				console.log(e);
 				document.getElementById("nav2").innerHTML=nav2default;
 			}
+			messages('geo'+showcode.substring(0,6), document.getElementById("messages"), code==showcode);
 	}, function(err) {
 			console.warn('ERROR(' + err.code + '): ' + err.message);
 	},{

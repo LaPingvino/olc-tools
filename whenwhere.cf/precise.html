@@ -4,12 +4,9 @@
 <link rel="manifest" href="manifest.json">
 <style>
 @import url('https://fonts.googleapis.com/css?family=Roboto+Slab');
-div, #navinput {
-	font-family: 'Roboto Slab', sans-serif;
-	font-size: 2em;
-}
 #code {
-	font-size: 4em;
+	font-family: 'Roboto Slab', sans-serif;
+	font-size: 1.5em;
 }
 #local {
 	font-weight: bold;
@@ -18,15 +15,9 @@ div, #navinput {
 	width: 13ex;
 }
 </style>
-<div id="nowat">Your phone thinks you are at</div>
-<div id="code" onclick="location.hash=this.title;location.reload();"><span id="region">0000</span> <span id="local">0000+00</span></div>
-<div id="accuracy">but we are still loading the page... If this takes too long, try to open in a true webbrowser and on https.</div>
-<div id="nav"><span id="nav1">The code </span><input id="navinput" placeholder="go where?"><span id="nav2"> is not something I can navigate you to. Try entering a plus code.</span></div>
-<div id="more">Get a <a id="map" href="https://plus.codes/map/">full map</a> or find the code for a location and <a href="https://plus.codes">more information about Plus-codes</a>. If the part after the + in your code changes all the time while you are standing still, your GPS is probably not accurate enough for navigation. I managed to remedy this with the "inject time" option in <a href="https://play.google.com/store/apps/details?id=com.android.gpstest">the Open Source GPS test application</a>. Depending on the model of your phone, there might be different ways here to fix your GPS.</div>
+<div id="code" onclick="location.hash=this.title;location.reload();"><span id="region">0000</span><span id="local">0000+00</span> (<span id="accuracy">loading...</span>)</div>
 	<script src="openlocationcode.min.js"></script>
 	<script>
-		nav2default = document.getElementById("nav2").innerHTML;
-		document.getElementById("navinput").value=location.hash.substring(1);
 		function dist(lat1,lon1,lat2,lon2) {
 			  var R = 6371; // Radius of the earth in km
 			  var dLat = deg2rad(lat2-lat1);  // deg2rad below
@@ -62,12 +53,9 @@ function direction(lat1,long1,lat2,long2) {
 	navigator.geolocation.watchPosition(function(location) {
 			length=13;
 			code = OpenLocationCode.encode(location.coords.latitude, location.coords.longitude, length)
-			document.getElementById("code").title=code;
 			document.getElementById("region").innerHTML=code.substring(0,4);
 			document.getElementById("local").innerHTML=code.substring(4);
-			document.getElementById("accuracy").innerHTML="within "+Math.floor(acc)+" meters of accuracy"+dot;
-			document.getElementById("map").href="https://plus.codes/map/"+document.getElementById("navinput").value;
-			document.getElementById("navinput").value = document.getElementById("navinput").value.replace(/ /g, "");
+			document.getElementById("accuracy").innerHTML="Accuracy: "+Math.floor(location.coords.accuracy)+"m";
 			
 			try {
 				lat1 = location.coords.latitude;

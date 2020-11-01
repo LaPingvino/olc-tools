@@ -4,6 +4,7 @@ import (
 	"os"
 	"fmt"
 	"bufio"
+	"io"
 	"encoding/json"
 	"strings"
 	"strconv"
@@ -22,13 +23,25 @@ type Name struct {
 
 func main() {
 	if len(os.Args) < 2 {
-		panic("need to invoke with link to planet.osm.bz2 file")
+		panic("need to invoke with link or path to planet.osm or planet.osm.bz2 file")
 	}
+	var bz2 bool
+	if strings.HasSuffix(os.Args[1], "bz2") {
+		bz2 = true
+	}
+	var file io.Reader
 	resp, err := http.Get(os.Args[1])
 	if err != nil {
-		panic("problem opening file: " + err.Error())
+		file, err = os.Open(os.Args[1])
+	} else {
+		file = resp.Body
 	}
-	file := bzip2.NewReader(resp.Body)
+	if err != nil {
+		panic("error reading file: " + err.Error())
+	}
+	if bz2 {
+		file = bzip2.NewReader(file)
+	}
 	fb := bufio.NewReader(file)
 	var node, place bool
 	var line string

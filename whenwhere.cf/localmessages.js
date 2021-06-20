@@ -51,6 +51,7 @@ function messages(olctag, elem, local) {
 	if (olctag == oldtag) { return }
 	elem.innerHTML='<div id="gettag">Your '+ (local?'local':'destination')+ ' hashtag is #'+olctag+'</div>'+
 			'<div id="social-media">You can look for it on <a href="https://twitter.com/hashtag/'+olctag+'">Twitter</a> and <a href="https://twitter.com/intent/tweet?url=https%3A%2F%2Fwhenwhere.cf&hashtags='+olctag+'">tweet with the tag</a>, find posts on <a href="https://www.facebook.com/hashtag/'+olctag+'">Facebook</a> or follow local messages on <a href="https://www.instagram.com/explore/tags/'+olctag+'/">Instagram.</a> On all these networks, add #'+olctag+' as a tag to your post to make it findable to people around you.</div>'+
+			'<div id="IRC"> Chat with your region at <a href="https://web.libera.chat/##'+olctag+'">Libera.Chat (IRC)</a>!</div>'+
 			'<hr /><div id="postmessage"><a href="https://hive.blog/submit.html?category='+olctag+'">Write on Hive to people nearby</a> - <a href="https://signup.hive.io/">Create a Hive account to start writing</a></div>';
 	let m = 100;
 	let d = 0;

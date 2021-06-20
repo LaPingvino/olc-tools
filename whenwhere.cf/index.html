@@ -12,7 +12,7 @@
 <meta name="theme-color" value="white">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Weather PWA">
+<meta name="apple-mobile-web-app-title" content="WhenWhere.cf">
 <link rel="apple-touch-icon" href="/images/icons/icon-152x152.png">
 <link rel="manifest" href="manifest.json">
 <link rel="canonical" href="https://whenwhere.cf">
@@ -20,7 +20,7 @@
 @import url('https://fonts.googleapis.com/css?family=Roboto+Slab');
 div, #navinput {
 	font-family: 'Roboto Slab', sans-serif;
-	font-size: 1.2em;
+	font-size: 1em;
 }
 #code {
 	font-size: 3em;
@@ -42,13 +42,10 @@ div, #navinput {
 <div id="nowat">You are at:</div>
 <div id="code" onclick="share(this.title)"><span id="region">0000</span><wbr><span id="local">0000+00</span></div>
 <div id="accuracy">Please be patient. If this stays here too long, something is wrong.</div>
+<div id="shortcode">If someone is already close to you, the bold last part of the code is enough.</div>
 <div id="nav"><span id="nav1">Go to:<br /></span><input id="navinput" placeholder="go where?"><span id="nav2"><br />(enter OLC)</span></div>
 <hr />
-<div id="more"><ul><li><a id="navapp" href="https://www.google.com/maps/@?api=1&map_action=map">Navigate with other app</a></li>
-		<li><a id="map" href="https://plus.codes/map/">Full map around the OLC</a></li>
-		<li>If someone is already close to you, it's enough to give just the bold part of the code. You can do a <a id="refhref" href="https://nominatim.openstreetmap.org/reverse.php?format=html&zoom=12">reverse lookup on Nominatim</a> to find out where you are close to, and use this to get people to the right region first.</li>
-		<li><a href="https://plus.codes">Get more information about Plus-codes</a></li>
-		<li><a href="precise.html">More precise version for e.g. slum navigation</a></li>
+<div id="more"><b>Do more with this code:</b> <a id="navapp" href="https://www.google.com/maps/@?api=1&map_action=map">Navigate with a map app</a>, look at the <a id="map" href="https://plus.codes/map/">full map around the OLC</a>,  do a <a id="refhref" href="https://nominatim.openstreetmap.org/reverse.php?format=html&zoom=12">reverse lookup</a> to get possible reference points to get people to the right region first. Want more info? <a href="https://plus.codes">Get the full story about Plus-codes</a>. There is also a <a href="precise.html">more precise version for e.g. slum navigation</a>
 	</div>
 	<hr />
 	<div id="messages">

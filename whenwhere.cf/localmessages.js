@@ -50,28 +50,30 @@ function messages(olctag, elem, local) {
 	olctag = olctag.toLowerCase();
 	if (olctag == oldtag) { return }
 	elem.innerHTML='<div id="gettag">Your '+ (local?'local':'destination')+ ' hashtag is #'+olctag+'</div>'+
-			'<div id="twitter"><a href="https://twitter.com/hashtag/'+olctag+'">See tweets around this location</a> - <a href="https://twitter.com/intent/tweet?url=https%3A%2F%2Fwhenwhere.cf&hashtags='+olctag+'">Write a tweet for people around this location</a></div>'+
-			'<div id="facebook"><a href="https://www.facebook.com/hashtag/'+olctag+'">Find local messages on Facebook</a> - You can create a public post with #'+olctag+' in it to be found there</div>'+
-			'<div id="instagram"><a href="https://www.instagram.com/explore/tags/'+olctag+'/">Find local posts on Instagram and follow them there</a> (post with #'+olctag+' to make your pictures appear there)</div>'+
-			'<div id="postmessage"><a href="https://hive.blog/submit.html?category='+olctag+'">Write a message on HIVE to the people around the location</a></div>';
+			'<div id="social-media">You can look for it on <a href="https://twitter.com/hashtag/'+olctag+'">Twitter</a> and <a href="https://twitter.com/intent/tweet?url=https%3A%2F%2Fwhenwhere.cf&hashtags='+olctag+'">tweet with the tag</a>, find posts on <a href="https://www.facebook.com/hashtag/'+olctag+'">Facebook</a> or follow local messages on <a href="https://www.instagram.com/explore/tags/'+olctag+'/">Instagram.</a> On all these networks, add #'+olctag+' as a tag to your post to make it findable to people around you.</div>'+
+			'<hr /><div id="postmessage"><a href="https://hive.blog/submit.html?category='+olctag+'">Write on Hive to people nearby</a> - <a href="https://signup.hive.io/">Create a Hive account to start writing</a></div>';
 	let m = 100;
 	let d = 0;
 	function getLocData(){
 		let msgtag = getdtag(olctag, d);
-		hivejs.api.getDiscussionsByCreated({
+		hivejs.api.getDiscussionsByTrending({
 			tag: msgtag,
 			limit: 10,
 		}, function(err, result) {
 			console.log(err, result);
 			for (var i = 0; i < result.length; i++) {
 				elem.innerHTML += '<div class="message"><small>#' + msgtag + ' <a href="https://hive.blog' +
-					result[i].url + '">Open on hive.blog</a></small>'+ markdown.toHTML(result[i].body) + '</div>';
+					result[i].url + '">'+result[i].title+'</a> @'+ result[i].author +'</small>'+
+					markdown.toHTML(result[i].body) + '</div>';
 			}
 			m -= result.length;
 		});
 		d++;
 		console.log("location written...",m,d);
-		if (d < 400 && m > 0) setTimeout(getLocData, 100);
+		let wait = 1000;
+		if (d > 1) wait = 500;
+		if (d > 9 || m < 1) wait = 100;
+		if (d < 400 && m > 0) setTimeout(getLocData, wait);
 	}
 	getLocData();
 	oldtag = olctag;

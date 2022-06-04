@@ -8,6 +8,7 @@
 	<script src="hivejs.min.js"></script>
 	<script src="markdown.min.js"></script>
 	<script src="localmessages.js"></script>
+	<script src="openlocationcode.min.js"></script>
 <meta name="viewport" content="initial-scale=1">
 <meta name="theme-color" value="white">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -52,7 +53,6 @@ div, #navinput {
 		Here you will see messages of people around you...
 	</div>
 	<div id="source">Although the code is ugly, it's open source. Find it on <a href="https://github.com/lapingvino/olc-tools/">lapingvino/olc-tools</a> on Github.</div>
-	<script src="openlocationcode.min.js"></script>
 	<script>
 		document.getElementById("navinput").value=localStorage.getItem(location.pathname) || location.hash.substring(1);
 		nav2default = document.getElementById("nav2").innerHTML;

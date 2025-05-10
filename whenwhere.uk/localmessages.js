@@ -122,12 +122,13 @@ function getdtag(tag, distance) {
 
 // Replaced stub with actual Bluesky API integration
 function fetchBlueskyPostsByTag(tag, limit, callback) {
-  console.log(`[API] Fetching Bluesky posts for tag: ${tag}, limit: ${limit}`);
-  const API_BASE_URL =
-    "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts";
-  // The 'tag' parameter to the API should not include the '#'.
+  console.log(`[API] Fetching Bluesky posts for tag: #${tag}, limit: ${limit}`);
+  const API_BASE_URL = "https://api.bsky.app/xrpc/app.bsky.feed.searchPosts";
+  // The 'q' parameter is used for general search. To search for a tag,
+  // we prepend '#' to the tag.
   // 'sort=latest' is default, but explicit.
-  const url = `${API_BASE_URL}?tag=${encodeURIComponent(tag)}&limit=${limit}&sort=latest`;
+  const searchQuery = `#${tag}`;
+  const url = `${API_BASE_URL}?q=${encodeURIComponent(searchQuery)}&limit=${limit}&sort=latest`;
 
   fetch(url)
     .then((response) => {
@@ -153,7 +154,7 @@ function fetchBlueskyPostsByTag(tag, limit, callback) {
       } else {
         // Response structure might be different than expected, or posts array is missing
         console.warn(
-          `[API] Unexpected response structure for tag ${tag}:`,
+          `[API] Unexpected response structure for tag #${tag}:`,
           data,
         );
         callback(null, []); // Treat as no posts found
@@ -161,7 +162,7 @@ function fetchBlueskyPostsByTag(tag, limit, callback) {
     })
     .catch((error) => {
       console.error(
-        `[API] Error fetching Bluesky posts for tag ${tag}:`,
+        `[API] Error fetching Bluesky posts for tag #${tag}:`,
         error,
       );
       callback(error, null);

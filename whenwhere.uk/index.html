@@ -103,7 +103,8 @@
             }
 
             #local {
-                font-weight: 700; /* Already bold, but explicit */
+                font-weight: 700; /* Already bold, but explicit due to parent #code also being 700 */
+                color: var(--dark-gray); /* Make it visually distinct */
             }
 
             #nav {
@@ -233,11 +234,7 @@
         <div class="container">
             <h1>WhenWhere.uk</h1>
             <div id="nowat">You are at:</div>
-            <div
-                id="code"
-                onclick="share(this.title)"
-                title="Click to share this code"
-            >
+            <div id="code" title="Click to share this code">
                 <span id="region">0000</span><wbr /><span id="local"
                     >0000+00</span
                 >
@@ -247,7 +244,7 @@
                 wrong.
             </div>
             <div id="shortcode" class="text-muted">
-                If someone is already close to you, the bold last part of the
+                If someone is already close to you, the darker last part of the
                 code is enough.
             </div>
 
@@ -312,7 +309,10 @@
             document.getElementById("navinput").value =
                 localStorage.getItem(location.pathname) ||
                 location.hash.substring(1);
-            nav2default = document.getElementById("nav2").innerHTML;
+            let nav2default = document.getElementById("nav2").innerHTML;
+            let dot = "."; // This is used for a subtle animation/indicator
+            let isCodeInteractionPaused = false; // Flag to pause OLC updates during copy/share
+
             function dist(lat1, lon1, lat2, lon2) {
                 var R = 6371; // Radius of the earth in km
                 var dLat = deg2rad(lat2 - lat1); // deg2rad below
@@ -336,12 +336,8 @@
                     e = -e;
                 } // Correct for longitude wrapping
                 ns = n > 0 ? "south" : "north";
-                es = e > 0 ? "west" : "east"; // Corrected: if e is positive, it's east of you, so you go west. This logic might be reversed based on intent. Assuming (lat2,long2) is destination.
-                // If e = long1 - long2 > 0, then long1 > long2, so destination is to the west.
+                es = e > 0 ? "west" : "east";
                 r = "";
-                // Displaying "units" or "steps" might be more intuitive than raw coordinate differences.
-                // For simplicity, keeping the original logic but with better emoji if available.
-                // Using walking person emoji: \u{1F6B6}
                 if (Math.abs(n) > t) {
                     r +=
                         Math.floor(Math.abs(n) * 100000) +
@@ -358,68 +354,8 @@
                 }
                 if (r == "") {
                     r = "You've arrived! \u{1F3C1}";
-                } // Added a flag emoji
-                return r;
-            }
-
-            function share(code) {
-                var webShare = "share" in navigator;
-                if (webShare) {
-                    // Use Web Share API
-                    document.getElementById("code").addEventListener(
-                        "click",
-                        () => {
-                            navigator
-                                .share({
-                                    title: "My WhenWhere.uk Location",
-                                    text:
-                                        "My current location code is: " +
-                                        code +
-                                        ". Join me or see where I am!",
-                                    url:
-                                        location.href.match(/^[^#]*/)[0] +
-                                        "#" +
-                                        code,
-                                })
-                                .then(() => console.log("Shared successfully"))
-                                .catch((error) =>
-                                    console.error("Error sharing:", error),
-                                );
-                        },
-                        { once: true },
-                    ); // Attach the event listener only once
-                } else {
-                    // Fallback for browsers that don't support Web Share API
-                    // Prompt user to copy the link or code
-                    document.getElementById("code").addEventListener(
-                        "click",
-                        () => {
-                            // Select the text
-                            const range = document.createRange();
-                            range.selectNode(document.getElementById("code"));
-                            window.getSelection().removeAllRanges();
-                            window.getSelection().addRange(range);
-
-                            try {
-                                // Now that we've selected the text, let's copy it
-                                document.execCommand("copy");
-                                alert("Code copied to clipboard!");
-                            } catch (err) {
-                                console.error("Failed to copy: ", err);
-                                alert(
-                                    "Sharing not supported on this browser. Your code is: " +
-                                        code +
-                                        "\nURL: " +
-                                        location.href.match(/^[^#]*/)[0] +
-                                        "#" +
-                                        code +
-                                        "\nPlease copy it manually.",
-                                );
-                            }
-                        },
-                        { once: true },
-                    ); // Attach the event listener only once
                 }
+                return r;
             }
 
             function resolve(code, lat, lon) {
@@ -430,19 +366,13 @@
                 const upperCode = code.trim().toUpperCase();
 
                 try {
-                    // OpenLocationCode.recoverNearest can handle full codes and short codes.
-                    // It will throw an error for badly formed codes.
                     let recoveredFullCode = OpenLocationCode.recoverNearest(
                         upperCode,
                         lat,
                         lon,
                     );
-                    // OpenLocationCode.decode then gets the coordinates object.
                     return OpenLocationCode.decode(recoveredFullCode);
                 } catch (e) {
-                    // This catch block will handle errors from recoverNearest (e.g., invalid code format)
-                    // or from decode (though less likely if recoverNearest succeeds).
-                    // Log this as a warning, as it's often due to user input.
                     console.warn(
                         "OLC resolve/decode error for input '" +
                             upperCode +
@@ -456,35 +386,33 @@
             function deg2rad(deg) {
                 return deg * (Math.PI / 180);
             }
-            dot = "."; // This is used for a subtle animation/indicator
+
             navigator.geolocation.watchPosition(
                 function (position) {
-                    // Renamed location to position for clarity
-                    length = 4; // Default OLC length
+                    if (isCodeInteractionPaused) {
+                        // console.log("Code update paused due to user interaction."); // Optional for debugging
+                        return; // Skip OLC display updates
+                    }
+
+                    length = 4;
                     if (dot == "") {
                         dot = ".";
                     } else {
                         dot = "";
-                    } // Toggle dot for visual feedback
+                    }
 
-                    let coords = position.coords; // Cache coords
+                    let coords = position.coords;
                     acc = coords.accuracy;
 
-                    // Determine OLC length based on accuracy
                     if (acc < 15) {
-                        // Very high accuracy
                         length = 11;
                     } else if (acc < 300) {
-                        // Good accuracy
                         length = 10;
                     } else if (acc < 6000) {
-                        // Medium accuracy
                         length = 8;
                     } else if (acc < 120000) {
-                        // Low accuracy
                         length = 6;
                     }
-                    // else length remains 4 (very low accuracy / region only)
 
                     currentOlc = OpenLocationCode.encode(
                         coords.latitude,
@@ -492,7 +420,7 @@
                         length,
                     );
 
-                    document.getElementById("code").title = currentOlc; // Set title for share function
+                    document.getElementById("code").title = currentOlc;
                     document.getElementById("region").innerHTML =
                         currentOlc.substring(0, 4);
                     document.getElementById("local").innerHTML =
@@ -503,29 +431,25 @@
                         " meters " +
                         dot;
 
-                    // Update links with current location/navigation info
                     let navInputValue = document
                         .getElementById("navinput")
-                        .value.trim(); // Keep original case for some uses, but use toUpperCase for OLC logic
-
+                        .value.trim();
                     let navInputUpper = navInputValue.toUpperCase();
 
                     document.getElementById("map").href =
                         "https://plus.codes/map/" +
-                        (navInputUpper || currentOlc); // Use current OLC if input is empty
+                        (navInputUpper || currentOlc);
                     document.getElementById("refhref").href =
                         "https://nominatim.openstreetmap.org/reverse.php?format=html&lat=" +
                         coords.latitude +
                         "&lon=" +
                         coords.longitude +
-                        "&zoom=18"; // Increased zoom for more detail
+                        "&zoom=18";
 
                     try {
                         if (navInputValue) {
-                            // Check if original trimmed input value is not empty
-                            // Only process if there's something in navinput
                             let destination = resolve(
-                                navInputUpper, // Use upper case for resolving
+                                navInputUpper,
                                 coords.latitude,
                                 coords.longitude,
                             );
@@ -533,12 +457,11 @@
                                 let destinationOlc = OpenLocationCode.encode(
                                     destination.latitudeCenter,
                                     destination.longitudeCenter,
-                                    // Use the codeLength from the decoded OLC object for better precision
                                     Math.max(6, destination.codeLength),
                                 );
                                 document.getElementById("navapp").href =
                                     "https://www.google.com/maps/dir/?api=1&destination=" +
-                                    encodeURIComponent(navInputValue); // Use original input for nav
+                                    encodeURIComponent(navInputValue);
 
                                 let distance = dist(
                                     coords.latitude,
@@ -556,13 +479,13 @@
                                     `Target is ~${distance}m away (${direction})`;
 
                                 if (
-                                    location.hash.substring(1) !== navInputValue // Compare with original input for hash
+                                    location.hash.substring(1) !== navInputValue
                                 ) {
-                                    location.hash = navInputValue; // Set hash to original input
+                                    location.hash = navInputValue;
                                 }
                                 localStorage.setItem(
                                     location.pathname,
-                                    navInputValue, // Store original input
+                                    navInputValue,
                                 );
                                 messages(
                                     "geo" + destinationOlc.substring(0, 6),
@@ -570,7 +493,7 @@
                                     currentOlc.startsWith(
                                         destinationOlc.substring(0, 6),
                                     ),
-                                ); // Check if in same 6-char grid
+                                );
                             } else {
                                 document.getElementById("nav2").innerHTML =
                                     "(Invalid OLC entered)";
@@ -578,25 +501,21 @@
                                     "geo" + currentOlc.substring(0, 6),
                                     document.getElementById("messages"),
                                     true,
-                                ); // Show messages for current location
+                                );
                             }
                         } else {
                             document.getElementById("nav2").innerHTML =
-                                nav2default; // Reset to default if input is empty
+                                nav2default;
                             document.getElementById("navapp").href =
                                 "https://www.google.com/maps/@?api=1&map_action=map&center=" +
                                 coords.latitude +
                                 "," +
-                                coords.longitude; // Center map on current location
+                                coords.longitude;
                             messages(
                                 "geo" + currentOlc.substring(0, 6),
                                 document.getElementById("messages"),
                                 true,
-                            ); // Show messages for current location
-                            if (location.hash) {
-                                // Clear hash if nav input is empty
-                                // history.pushState("", document.title, window.location.pathname + window.location.search); // Clears hash without reload
-                            }
+                            );
                         }
                     } catch (e) {
                         console.error(
@@ -608,7 +527,7 @@
                             "geo" + currentOlc.substring(0, 6),
                             document.getElementById("messages"),
                             true,
-                        ); // Fallback to current location messages
+                        );
                     }
                 },
                 function (err) {
@@ -617,9 +536,11 @@
                     );
                     document.getElementById("accuracy").innerHTML =
                         "Could not get location. Error: " + err.message;
-                    // Optionally, try to load messages based on a default or hashed location if geolocation fails
-                    let fallbackOlc = location.hash.substring(1) || "8FXC0000+"; // Example default
-                    if (OpenLocationCode.isValid(fallbackOlc.toUpperCase())) {
+                    let fallbackOlc = location.hash.substring(1) || "8FXC0000+";
+                    if (
+                        typeof OpenLocationCode !== "undefined" &&
+                        OpenLocationCode.isValid(fallbackOlc.toUpperCase())
+                    ) {
                         messages(
                             "geo" + fallbackOlc.substring(0, 6).toUpperCase(),
                             document.getElementById("messages"),
@@ -628,11 +549,95 @@
                     }
                 },
                 {
-                    enableHighAccuracy: true, // Request high accuracy
-                    timeout: 10000, // Increased timeout for geolocation
-                    maximumAge: 5000, // Allow cached position up to 5 seconds old
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 5000,
                 },
             );
+
+            const codeElement = document.getElementById("code");
+            if (codeElement) {
+                codeElement.addEventListener("click", function () {
+                    const codeToShare = this.title;
+
+                    if (
+                        codeToShare === "Click to share this code" ||
+                        (typeof OpenLocationCode !== "undefined" &&
+                            !OpenLocationCode.isValid(
+                                codeToShare.toUpperCase(),
+                            ))
+                    ) {
+                        alert(
+                            "Location code not yet available or invalid. Please wait for GPS lock or a valid code to appear.",
+                        );
+                        return;
+                    }
+
+                    isCodeInteractionPaused = true;
+
+                    var webShare = "share" in navigator;
+                    if (webShare) {
+                        navigator
+                            .share({
+                                title: "My WhenWhere.uk Location",
+                                text:
+                                    "My current location code is: " +
+                                    codeToShare +
+                                    ". Join me or see where I am!",
+                                url:
+                                    location.href.match(/^[^#]*/)[0] +
+                                    "#" +
+                                    codeToShare,
+                            })
+                            .then(() => {
+                                console.log("Shared successfully");
+                            })
+                            .catch((error) => {
+                                if (error.name !== "AbortError") {
+                                    // Don't log error if user simply cancelled share dialog
+                                    console.error("Error sharing:", error);
+                                } else {
+                                    console.log("Share aborted by user.");
+                                }
+                            })
+                            .finally(() => {
+                                isCodeInteractionPaused = false;
+                            });
+                    } else {
+                        // Fallback for browsers that don't support Web Share API
+                        const currentSelection = window.getSelection();
+                        const range = document.createRange();
+                        range.selectNodeContents(this); // Selects the content inside #code
+                        currentSelection.removeAllRanges();
+                        currentSelection.addRange(range);
+
+                        try {
+                            if (!document.execCommand("copy")) {
+                                throw new Error(
+                                    "Copy command failed or not supported.",
+                                );
+                            }
+                            alert("Code copied to clipboard!");
+                        } catch (err) {
+                            console.error("Failed to copy: ", err);
+                            const fullUrl =
+                                location.href.match(/^[^#]*/)[0] +
+                                "#" +
+                                codeToShare;
+                            alert(
+                                "Automatic copy failed. Your code is: " +
+                                    codeToShare +
+                                    "\nURL: " +
+                                    fullUrl +
+                                    "\nPlease copy it manually.",
+                            );
+                        } finally {
+                            currentSelection.removeAllRanges(); // Deselect text
+                            isCodeInteractionPaused = false;
+                        }
+                    }
+                });
+            }
         </script>
         <script>
             // register serviceworker

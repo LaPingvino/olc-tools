@@ -89,17 +89,51 @@
                 font-weight: 700;
                 color: var(--primary-color);
                 text-align: center;
-                margin: 10px 0 15px;
+                margin: 10px 0 5px; /* Adjusted margin */
                 padding: 10px;
                 background-color: var(--light-gray);
                 border-radius: 4px;
-                cursor: pointer;
                 word-break: break-all; /* Ensure long codes don't overflow */
-                user-select: all;
+                /* user-select: all; REMOVED to prevent selection issues */
+                /* cursor: pointer; REMOVED as it's not directly clickable for action */
             }
 
-            #code:hover {
+            /* #code:hover {
+                background-color: #e9ecef; REMOVED as it's not interactive
+            } */
+
+            .action-buttons {
+                margin-top: 10px;
+                margin-bottom: 15px; /* Added margin below buttons */
+                display: flex;
+                justify-content: center;
+                gap: 10px;
+            }
+
+            .action-buttons button {
+                font-family: "Roboto Slab", serif;
+                font-size: 0.9em; /* Adjusted for text + emoji */
+                padding: 8px 15px;
+                border: 1px solid var(--border-color);
+                background-color: white;
+                color: var(--primary-color);
+                border-radius: 4px;
+                cursor: pointer;
+                transition:
+                    background-color 0.2s ease,
+                    border-color 0.2s ease;
+                display: inline-flex; /* Align icon and text */
+                align-items: center;
+                gap: 5px; /* Space between icon and text */
+            }
+
+            .action-buttons button:hover {
                 background-color: #e9ecef;
+                border-color: var(--primary-color);
+            }
+
+            .action-buttons button:active {
+                background-color: #d3d9df;
             }
 
             #local {
@@ -227,6 +261,10 @@
                 #navinput {
                     width: 100%; /* Full width on small screens */
                 }
+                .action-buttons button {
+                    font-size: 0.8em;
+                    padding: 6px 10px;
+                }
             }
         </style>
     </head>
@@ -234,10 +272,16 @@
         <div class="container">
             <h1>WhenWhere.uk</h1>
             <div id="nowat">You are at:</div>
-            <div id="code" title="Click to share this code">
+            <div id="code" title="Waiting for location...">
                 <span id="region">0000</span><wbr /><span id="local"
                     >0000+00</span
                 >
+            </div>
+            <div class="action-buttons">
+                <button id="copyCodeButton" title="Copy Code">📋 Copy</button>
+                <button id="shareCodeButton" title="Share Link & Code">
+                    🔗 Share
+                </button>
             </div>
             <div id="accuracy" class="text-muted">
                 Please be patient. If this stays here too long, something is
@@ -420,7 +464,7 @@
                         length,
                     );
 
-                    document.getElementById("code").title = currentOlc;
+                    document.getElementById("code").title = currentOlc; // Update title for buttons
                     document.getElementById("region").innerHTML =
                         currentOlc.substring(0, 4);
                     document.getElementById("local").innerHTML =
@@ -555,87 +599,146 @@
                 },
             );
 
-            const codeElement = document.getElementById("code");
-            if (codeElement) {
-                codeElement.addEventListener("click", function () {
-                    const codeToShare = this.title;
+            const codeDisplayElement = document.getElementById("code");
+            const copyCodeButton = document.getElementById("copyCodeButton");
+            const shareCodeButton = document.getElementById("shareCodeButton");
 
-                    if (
-                        codeToShare === "Click to share this code" ||
-                        (typeof OpenLocationCode !== "undefined" &&
-                            !OpenLocationCode.isValid(
-                                codeToShare.toUpperCase(),
-                            ))
-                    ) {
-                        alert(
-                            "Location code not yet available or invalid. Please wait for GPS lock or a valid code to appear.",
-                        );
-                        return;
-                    }
+            function getCurrentValidOlcFromTitle() {
+                const olc = codeDisplayElement.title;
+                if (
+                    typeof OpenLocationCode !== "undefined" &&
+                    OpenLocationCode.isValid(olc.toUpperCase())
+                ) {
+                    return olc;
+                } else {
+                    alert(
+                        "Location code not yet available or is invalid. Please wait for GPS to provide a valid code.",
+                    );
+                    return null;
+                }
+            }
+
+            if (copyCodeButton) {
+                copyCodeButton.addEventListener("click", async function () {
+                    const codeToCopy = getCurrentValidOlcFromTitle();
+                    if (!codeToCopy) return;
 
                     isCodeInteractionPaused = true;
+                    await new Promise((resolve) => setTimeout(resolve, 50)); // Brief pause
 
-                    var webShare = "share" in navigator;
-                    if (webShare) {
-                        navigator
-                            .share({
-                                title: "My WhenWhere.uk Location",
-                                text:
-                                    "My current location code is: " +
-                                    codeToShare +
-                                    ". Join me or see where I am!",
-                                url:
-                                    location.href.match(/^[^#]*/)[0] +
-                                    "#" +
-                                    codeToShare,
-                            })
-                            .then(() => {
-                                console.log("Shared successfully");
-                            })
-                            .catch((error) => {
-                                if (error.name !== "AbortError") {
-                                    // Don't log error if user simply cancelled share dialog
-                                    console.error("Error sharing:", error);
-                                } else {
-                                    console.log("Share aborted by user.");
-                                }
-                            })
-                            .finally(() => {
-                                isCodeInteractionPaused = false;
-                            });
-                    } else {
-                        // Fallback for browsers that don't support Web Share API
-                        const currentSelection = window.getSelection();
-                        const range = document.createRange();
-                        range.selectNodeContents(this); // Selects the content inside #code
-                        currentSelection.removeAllRanges();
-                        currentSelection.addRange(range);
-
-                        try {
-                            if (!document.execCommand("copy")) {
-                                throw new Error(
-                                    "Copy command failed or not supported.",
+                    try {
+                        if (
+                            navigator.clipboard &&
+                            navigator.clipboard.writeText
+                        ) {
+                            await navigator.clipboard.writeText(codeToCopy);
+                            alert(
+                                "Code '" +
+                                    codeToCopy +
+                                    "' copied to clipboard!",
+                            );
+                        } else {
+                            const textArea = document.createElement("textarea");
+                            textArea.value = codeToCopy;
+                            textArea.style.position = "fixed";
+                            textArea.style.opacity = "0";
+                            document.body.appendChild(textArea);
+                            textArea.focus();
+                            textArea.select();
+                            try {
+                                document.execCommand("copy");
+                                alert(
+                                    "Code '" +
+                                        codeToCopy +
+                                        "' copied to clipboard (fallback)!",
+                                );
+                            } catch (err) {
+                                console.error("Fallback copy failed: ", err);
+                                alert(
+                                    "Automatic copy failed. Your code is: " +
+                                        codeToCopy +
+                                        "\nPlease copy it manually.",
                                 );
                             }
-                            alert("Code copied to clipboard!");
-                        } catch (err) {
-                            console.error("Failed to copy: ", err);
-                            const fullUrl =
-                                location.href.match(/^[^#]*/)[0] +
-                                "#" +
-                                codeToShare;
-                            alert(
-                                "Automatic copy failed. Your code is: " +
-                                    codeToShare +
-                                    "\nURL: " +
-                                    fullUrl +
-                                    "\nPlease copy it manually.",
-                            );
-                        } finally {
-                            currentSelection.removeAllRanges(); // Deselect text
-                            isCodeInteractionPaused = false;
+                            document.body.removeChild(textArea);
                         }
+                    } catch (err) {
+                        console.error("Failed to copy: ", err);
+                        alert(
+                            "Could not copy code. Your code is: " +
+                                codeToCopy +
+                                "\nPlease copy it manually. Error: " +
+                                err.message,
+                        );
+                    } finally {
+                        setTimeout(() => {
+                            isCodeInteractionPaused = false;
+                        }, 100);
                     }
+                });
+            }
+
+            if (shareCodeButton) {
+                shareCodeButton.addEventListener("click", function () {
+                    const codeToShare = getCurrentValidOlcFromTitle();
+                    if (!codeToShare) return;
+
+                    isCodeInteractionPaused = true;
+                    new Promise((resolve) => setTimeout(resolve, 50)).then(
+                        () => {
+                            // Brief pause
+                            var webShare = "share" in navigator;
+                            if (webShare) {
+                                navigator
+                                    .share({
+                                        title: "My WhenWhere.uk Location",
+                                        text:
+                                            "My current location code is: " +
+                                            codeToShare +
+                                            ". Join me or see where I am!",
+                                        url:
+                                            location.href.match(/^[^#]*/)[0] +
+                                            "#" +
+                                            codeToShare,
+                                    })
+                                    .then(() => {
+                                        console.log("Shared successfully");
+                                    })
+                                    .catch((error) => {
+                                        if (error.name !== "AbortError") {
+                                            console.error(
+                                                "Error sharing:",
+                                                error,
+                                            );
+                                        } else {
+                                            console.log(
+                                                "Share aborted by user.",
+                                            );
+                                        }
+                                    })
+                                    .finally(() => {
+                                        setTimeout(() => {
+                                            isCodeInteractionPaused = false;
+                                        }, 100);
+                                    });
+                            } else {
+                                const fullUrl =
+                                    location.href.match(/^[^#]*/)[0] +
+                                    "#" +
+                                    codeToShare;
+                                alert(
+                                    "Web Share not supported. Your code is: " +
+                                        codeToShare +
+                                        "\nURL to share: " +
+                                        fullUrl +
+                                        "\n\nPlease use the copy button or copy this information manually.",
+                                );
+                                setTimeout(() => {
+                                    isCodeInteractionPaused = false;
+                                }, 100);
+                            }
+                        },
+                    );
                 });
             }
         </script>

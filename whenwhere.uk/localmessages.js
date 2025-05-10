@@ -280,9 +280,19 @@ function messages(olctag, elem, local) {
       // Continue fetching if more messages are desired (m > 0) and we haven't hit the iteration limit (d < 400)
       // This part is only reached if there was no error in fetchBlueskyPostsByTag
       if (d < 400 && m > 0) {
-        let wait = 1000;
-        if (d > 1) wait = 500; // Faster polling after the first few
-        if (d > 9 || m < 1) wait = 100; // Very fast if almost done or many iterations
+        let wait;
+        // d is the count of fetches already completed.
+        // For the next fetch (d is 1-indexed here, e.g., d=1 means 1 fetch completed):
+        if (d < 3) {
+          // For the 2nd and 3rd fetches (i.e., when d is 1 or 2)
+          wait = 500; // Fast
+        } else if (d < 8) {
+          // For the 4th through 8th fetches (i.e., when d is 3, 4, 5, 6, 7)
+          wait = 1000; // Medium
+        } else {
+          // For the 9th fetch onwards (i.e., when d >= 8)
+          wait = 1500; // Slow
+        }
         setTimeout(getLocData, wait);
       } else {
         console.log(

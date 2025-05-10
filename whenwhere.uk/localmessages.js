@@ -193,7 +193,7 @@ function messages(olctag, elem, local) {
     olctag +
     '">Libera.Chat (IRC)</a>!</div>' +
     "<hr />";
-  let m = 100; // Target number of messages to display
+  let m = 10; // Target number of messages to display
   let d = 0; // Iteration counter / distance for getdtag
 
   function getLocData() {

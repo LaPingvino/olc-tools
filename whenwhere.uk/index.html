@@ -28,6 +28,7 @@
         <meta name="viewport" content="initial-scale=1" />
         <meta name="theme-color" value="#f8f9fa" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <meta name="apple-mobile-web-app-title" content="WhenWhere.uk" />
         <link rel="apple-touch-icon" href="/images/icons/icon-152x152.png" />
@@ -751,9 +752,14 @@
                     const timeSinceLastRequest = now - lastNominatimRequest;
 
                     if (timeSinceLastRequest < NOMINATIM_RATE_LIMIT) {
-                        const waitTime = NOMINATIM_RATE_LIMIT - timeSinceLastRequest;
-                        console.log(`Rate limiting: waiting ${waitTime}ms before Nominatim request`);
-                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                        const waitTime =
+                            NOMINATIM_RATE_LIMIT - timeSinceLastRequest;
+                        console.log(
+                            `Rate limiting: waiting ${waitTime}ms before Nominatim request`,
+                        );
+                        await new Promise((resolve) =>
+                            setTimeout(resolve, waitTime),
+                        );
                     }
 
                     console.log("Sending Nominatim request for:", query);
@@ -772,7 +778,9 @@
                         );
 
                         if (!response.ok) {
-                            throw new Error(`Nominatim HTTP error: ${response.status}`);
+                            throw new Error(
+                                `Nominatim HTTP error: ${response.status}`,
+                            );
                         }
 
                         return await response.json();
@@ -828,7 +836,10 @@
                     pendingRequests.delete(cacheKey);
 
                     // If it's a rate limit error, wait longer before next request
-                    if (e.message.includes("429") || e.message.includes("rate limit")) {
+                    if (
+                        e.message.includes("429") ||
+                        e.message.includes("rate limit")
+                    ) {
                         console.log("Rate limit detected, extending delay");
                         lastNominatimRequest = Date.now() + 5000; // Wait extra 5 seconds
                     }
@@ -841,7 +852,10 @@
             function shouldSkipLookup(query) {
                 const normalizedQuery = query.toLowerCase().trim();
                 const failTime = failedLookups.get(normalizedQuery);
-                if (failTime && (Date.now() - failTime) < FAILED_LOOKUP_RETRY_DELAY) {
+                if (
+                    failTime &&
+                    Date.now() - failTime < FAILED_LOOKUP_RETRY_DELAY
+                ) {
                     return true;
                 }
                 return false;
@@ -983,6 +997,27 @@
                 }
             }
 
+            // Basic OLC format check - more lenient, let the library do detailed validation
+            function looksLikeOLC(code) {
+                const trimmed = code.trim().toUpperCase();
+
+                // Must contain exactly one +
+                const plusCount = (trimmed.match(/\+/g) || []).length;
+                if (plusCount !== 1) {
+                    return false;
+                }
+
+                // Must not end with just +
+                if (trimmed.endsWith("+")) {
+                    return false;
+                }
+
+                // Basic pattern check - at least some valid OLC chars and a +
+                const basicPattern =
+                    /^[23456789CFGHJMPQRVWX0]{1,}\+[23456789CFGHJMPQRVWX]{1,}$/;
+                return basicPattern.test(trimmed);
+            }
+
             function resolve(code, lat, lon) {
                 // Ensure code is a string and not empty.
                 if (typeof code !== "string" || code.trim() === "") {
@@ -991,6 +1026,16 @@
                 const upperCode = code.trim().toUpperCase();
 
                 try {
+                    // Let the OpenLocationCode library handle validation
+                    // It's more lenient and handles edge cases better
+                    if (!OpenLocationCode.isValid(upperCode)) {
+                        console.log(
+                            "OLC library validation failed for:",
+                            upperCode,
+                        );
+                        return null;
+                    }
+
                     let recoveredFullCode = OpenLocationCode.recoverNearest(
                         upperCode,
                         lat,
@@ -1012,8 +1057,11 @@
             function parseShortCodeInput(input) {
                 const trimmed = input.trim().toUpperCase();
 
-                // Look for patterns like "9G8F+6W London" or "London 9G8F+6W"
-                const codePattern = /([A-Z0-9]{4,8}\+[A-Z0-9]{2,3})/;
+                // Official OLC character set: 23456789CFGHJMPQRVWX
+                // Look for patterns like "9G8F+6WXQ London" or "London 9G8F+6WXQ"
+                // Support variable lengths: 4-8 chars + + + 2-5 chars
+                const codePattern =
+                    /([23456789CFGHJMPQRVWX0]{2,8}\+[23456789CFGHJMPQRVWX]{2,5})/;
                 const match = trimmed.match(codePattern);
 
                 if (match) {
@@ -1039,7 +1087,10 @@
                 // Check destination cache first
                 const destCacheKey = `${code}_${lat.toFixed(4)}_${lon.toFixed(4)}`;
                 const cachedDestination = destinationCache.get(destCacheKey);
-                if (cachedDestination && (Date.now() - cachedDestination.timestamp) < CACHE_EXPIRY) {
+                if (
+                    cachedDestination &&
+                    Date.now() - cachedDestination.timestamp < CACHE_EXPIRY
+                ) {
                     console.log("Using cached destination for:", code);
                     return cachedDestination.destination;
                 }
@@ -1050,17 +1101,81 @@
                     return lastKnownGoodDestination;
                 }
 
-                // First try the standard OLC resolve (includes short codes with current position)
-                const olcResult = resolve(code, lat, lon);
-                if (olcResult) {
-                    console.log("Successfully resolved as OLC:", olcResult);
-                    clearFailedLookup(code);
-                    // Cache the successful result
-                    destinationCache.set(destCacheKey, {
-                        destination: olcResult,
-                        timestamp: Date.now()
-                    });
-                    return olcResult;
+                // Check if it looks like an OLC first to avoid unnecessary processing
+                const looksLikeOLC =
+                    /^[23456789CFGHJMPQRVWX0+\s]*$/.test(code.toUpperCase()) &&
+                    code.includes("+");
+
+                // Also check if it's a recognizable OLC pattern
+                const hasOLCPattern =
+                    /[23456789CFGHJMPQRVWX0]{2,}\+[23456789CFGHJMPQRVWX]{2,}/.test(
+                        code.toUpperCase(),
+                    );
+
+                if (looksLikeOLC || hasOLCPattern) {
+                    // First try the standard OLC resolve (includes short codes with current position)
+                    const olcResult = resolve(code, lat, lon);
+                    if (olcResult) {
+                        console.log("Successfully resolved as OLC:", olcResult);
+                        clearFailedLookup(code);
+                        // Cache the successful result
+                        destinationCache.set(destCacheKey, {
+                            destination: olcResult,
+                            timestamp: Date.now(),
+                        });
+                        return olcResult;
+                    }
+
+                    // Parse the input to see if it contains a short code with location reference
+                    const parsed = parseShortCodeInput(code);
+                    if (parsed && parsed.code) {
+                        console.log(
+                            "Detected short code:",
+                            parsed.code,
+                            "with location:",
+                            parsed.location,
+                        );
+
+                        if (parsed.location) {
+                            // Use Nominatim to find reference location for short code resolution
+                            console.log(
+                                "Looking up reference location:",
+                                parsed.location,
+                            );
+                            const referenceResult = await geocodeWithNominatim(
+                                parsed.location,
+                            );
+
+                            if (referenceResult) {
+                                console.log(
+                                    "Found reference location, re-attempting short code resolution",
+                                );
+                                const shortCodeResult = resolve(
+                                    parsed.code,
+                                    referenceResult.latitudeCenter,
+                                    referenceResult.longitudeCenter,
+                                );
+                                if (shortCodeResult) {
+                                    console.log(
+                                        "Successfully resolved short code with reference location",
+                                    );
+                                    clearFailedLookup(code);
+                                    // Cache the successful result
+                                    destinationCache.set(destCacheKey, {
+                                        destination: shortCodeResult,
+                                        timestamp: Date.now(),
+                                    });
+                                    return shortCodeResult;
+                                }
+                            }
+                        }
+
+                        console.log(
+                            "Short code resolution with reference location failed",
+                        );
+                        recordFailedLookup(code);
+                        return null;
+                    }
                 }
 
                 // Parse the input to see if it contains a short code with location reference
@@ -1101,7 +1216,7 @@
                                 // Cache the successful result
                                 destinationCache.set(destCacheKey, {
                                     destination: shortCodeResult,
-                                    timestamp: Date.now()
+                                    timestamp: Date.now(),
                                 });
                                 return shortCodeResult;
                             }
@@ -1129,7 +1244,7 @@
                     // Cache the successful result
                     destinationCache.set(destCacheKey, {
                         destination: nominatimResult,
-                        timestamp: Date.now()
+                        timestamp: Date.now(),
                     });
                     return nominatimResult;
                 } else {
@@ -1198,7 +1313,10 @@
 
                 if (navInputValue) {
                     // Only resolve if input has changed and we're not already resolving
-                    if (navInputValue !== lastNavInput && !isResolvingDestination) {
+                    if (
+                        navInputValue !== lastNavInput &&
+                        !isResolvingDestination
+                    ) {
                         isResolvingDestination = true;
                         lastNavInput = navInputValue;
 
@@ -1410,7 +1528,10 @@
                     .value.trim();
                 if (navInputValue) {
                     // Only resolve if input has changed and we're not already resolving
-                    if (navInputValue !== lastNavInput && !isResolvingDestination) {
+                    if (
+                        navInputValue !== lastNavInput &&
+                        !isResolvingDestination
+                    ) {
                         isResolvingDestination = true;
                         lastNavInput = navInputValue;
 
@@ -1424,9 +1545,13 @@
                                 lastKnownDestination = destination;
                             }
                         } catch (e) {
-                            console.warn("Error resolving"Error updating navigation with manual location:",
-                            e,
-                        );
+                            console.warn(
+                                "Error updating navigation with manual location:",
+                                e,
+                            );
+                        } finally {
+                            isResolvingDestination = false;
+                        }
                     }
                 }
             }

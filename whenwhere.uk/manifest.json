@@ -1,14 +1,15 @@
-{"dir" : "ltr",
-    "lang" : "en",
-    "name" : "WhenWhere offline mapless navigator",
-    "scope" : "/",
-    "display" : "standalone",
-    "start_url" : "https://whenwhere.cf/",
-    "short_name" : "WhenWhere",
-    "theme_color" : "white",
-    "description" : "Offline mapless navigator using Plus codes",
-    "orientation" : "any",
-    "background_color" : "white",
+{
+  "dir": "ltr",
+  "lang": "en",
+  "name": "WhenWhere offline mapless navigator",
+  "scope": "/",
+  "display": "standalone",
+  "start_url": "./",
+  "short_name": "WhenWhere",
+  "theme_color": "white",
+  "description": "Offline mapless navigator using Plus codes",
+  "orientation": "any",
+  "background_color": "white",
   "icons": [
     {
       "src": "/images/icons/icon-72x72.png",
@@ -50,4 +51,5 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]}
+  ]
+}

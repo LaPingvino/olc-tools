@@ -518,20 +518,6 @@
                         <div class="compass-label west">W</div>
                     </div>
                     <div id="direction-arrow"></div>
-                    <div
-                        id="compass-status"
-                        style="
-                            position: absolute;
-                            bottom: -30px;
-                            left: 50%;
-                            transform: translateX(-50%);
-                            font-size: 0.7em;
-                            color: #6c757d;
-                            display: none;
-                        "
-                    >
-                        🧭 Compass rotation active
-                    </div>
                 </div>
 
                 <!-- Mini Map -->
@@ -690,6 +676,18 @@
             const nominatimCache = new Map();
             const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
+            // Rate limiting for Nominatim API
+            let lastNominatimRequest = 0;
+            const NOMINATIM_RATE_LIMIT = 1100; // 1.1 seconds between requests (Nominatim allows 1 req/sec)
+            const pendingRequests = new Map(); // Track pending requests to avoid duplicates
+
+            // Destination caching and failed lookup tracking
+            const destinationCache = new Map();
+            const failedLookups = new Map();
+            const FAILED_LOOKUP_RETRY_DELAY = 30000; // Wait 30 seconds before retrying failed lookups
+            let lastKnownGoodDestination = null;
+            let lastKnownGoodInput = "";
+
             function getCacheKey(query) {
                 return `nominatim_${query.toLowerCase().trim()}`;
             }
@@ -731,7 +729,7 @@
                 }
             }
 
-            // Geocode using Nominatim API with caching and multiple results
+            // Geocode using Nominatim API with caching, rate limiting and multiple results
             async function geocodeWithNominatim(query, showPicker = false) {
                 try {
                     // Check cache first
@@ -740,18 +738,55 @@
                         return cachedResult;
                     }
 
+                    const cacheKey = getCacheKey(query);
+
+                    // Check if we already have a pending request for this query
+                    if (pendingRequests.has(cacheKey)) {
+                        console.log("Waiting for existing request for:", query);
+                        return await pendingRequests.get(cacheKey);
+                    }
+
+                    // Rate limiting check
+                    const now = Date.now();
+                    const timeSinceLastRequest = now - lastNominatimRequest;
+
+                    if (timeSinceLastRequest < NOMINATIM_RATE_LIMIT) {
+                        const waitTime = NOMINATIM_RATE_LIMIT - timeSinceLastRequest;
+                        console.log(`Rate limiting: waiting ${waitTime}ms before Nominatim request`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                    }
+
                     console.log("Sending Nominatim request for:", query);
+                    lastNominatimRequest = Date.now();
                     const limit = showPicker ? 5 : 1;
-                    const response = await fetch(
-                        `https://nominatim.openstreetmap.org/search?format=json&limit=${limit}&q=${encodeURIComponent(query)}`,
-                        {
-                            headers: {
-                                "User-Agent":
-                                    "whenwhere.uk/1.0 (https://whenwhere.uk; contact via GitHub)",
+                    // Create and store the promise for this request
+                    const requestPromise = (async () => {
+                        const response = await fetch(
+                            `https://nominatim.openstreetmap.org/search?format=json&limit=${limit}&q=${encodeURIComponent(query)}`,
+                            {
+                                headers: {
+                                    "User-Agent":
+                                        "whenwhere.uk/1.0 (https://whenwhere.uk; contact via GitHub)",
+                                },
                             },
-                        },
-                    );
-                    const data = await response.json();
+                        );
+
+                        if (!response.ok) {
+                            throw new Error(`Nominatim HTTP error: ${response.status}`);
+                        }
+
+                        return await response.json();
+                    })();
+
+                    pendingRequests.set(cacheKey, requestPromise);
+
+                    let data;
+                    try {
+                        data = await requestPromise;
+                    } finally {
+                        // Clean up pending request
+                        pendingRequests.delete(cacheKey);
+                    }
                     console.log("Nominatim response:", data);
 
                     if (data && data.length > 0) {
@@ -787,8 +822,41 @@
                     return null;
                 } catch (e) {
                     console.warn("Nominatim geocoding error:", e.message);
+
+                    // Clean up pending request on error
+                    const cacheKey = getCacheKey(query);
+                    pendingRequests.delete(cacheKey);
+
+                    // If it's a rate limit error, wait longer before next request
+                    if (e.message.includes("429") || e.message.includes("rate limit")) {
+                        console.log("Rate limit detected, extending delay");
+                        lastNominatimRequest = Date.now() + 5000; // Wait extra 5 seconds
+                    }
+
                     return null;
                 }
+            }
+
+            // Check if we should skip a lookup due to recent failure
+            function shouldSkipLookup(query) {
+                const normalizedQuery = query.toLowerCase().trim();
+                const failTime = failedLookups.get(normalizedQuery);
+                if (failTime && (Date.now() - failTime) < FAILED_LOOKUP_RETRY_DELAY) {
+                    return true;
+                }
+                return false;
+            }
+
+            // Record a failed lookup
+            function recordFailedLookup(query) {
+                const normalizedQuery = query.toLowerCase().trim();
+                failedLookups.set(normalizedQuery, Date.now());
+            }
+
+            // Clear failed lookup record (when lookup succeeds)
+            function clearFailedLookup(query) {
+                const normalizedQuery = query.toLowerCase().trim();
+                failedLookups.delete(normalizedQuery);
             }
 
             // Show location picker when multiple results are found
@@ -899,8 +967,12 @@
                     }
                     keys.forEach((key) => localStorage.removeItem(key));
 
+                    // Also clear destination cache and failed lookups
+                    destinationCache.clear();
+                    failedLookups.clear();
+
                     const status = document.getElementById("cache-status");
-                    status.innerHTML = `Cleared ${keys.length} cached location${keys.length !== 1 ? "s" : ""}. Nominatim results are cached for 24 hours to improve performance. <button id="clear-cache-btn" onclick="clearNominatimCache()">Clear Cache</button>`;
+                    status.innerHTML = `Cleared ${keys.length} cached location${keys.length !== 1 ? "s" : ""} and reset destination cache. Nominatim results are cached for 24 hours to improve performance. <button id="clear-cache-btn" onclick="clearNominatimCache()">Clear Cache</button>`;
 
                     setTimeout(() => {
                         status.innerHTML =
@@ -964,10 +1036,30 @@
                     `Starting resolution for: "${code}" at position ${lat}, ${lon}`,
                 );
 
+                // Check destination cache first
+                const destCacheKey = `${code}_${lat.toFixed(4)}_${lon.toFixed(4)}`;
+                const cachedDestination = destinationCache.get(destCacheKey);
+                if (cachedDestination && (Date.now() - cachedDestination.timestamp) < CACHE_EXPIRY) {
+                    console.log("Using cached destination for:", code);
+                    return cachedDestination.destination;
+                }
+
+                // Check if we should skip due to recent failure
+                if (shouldSkipLookup(code)) {
+                    console.log("Skipping lookup due to recent failure:", code);
+                    return lastKnownGoodDestination;
+                }
+
                 // First try the standard OLC resolve (includes short codes with current position)
                 const olcResult = resolve(code, lat, lon);
                 if (olcResult) {
                     console.log("Successfully resolved as OLC:", olcResult);
+                    clearFailedLookup(code);
+                    // Cache the successful result
+                    destinationCache.set(destCacheKey, {
+                        destination: olcResult,
+                        timestamp: Date.now()
+                    });
                     return olcResult;
                 }
 
@@ -1005,6 +1097,12 @@
                                 console.log(
                                     "Successfully resolved short code with reference location",
                                 );
+                                clearFailedLookup(code);
+                                // Cache the successful result
+                                destinationCache.set(destCacheKey, {
+                                    destination: shortCodeResult,
+                                    timestamp: Date.now()
+                                });
                                 return shortCodeResult;
                             }
                         }
@@ -1027,10 +1125,18 @@
                         "Successfully geocoded place name:",
                         nominatimResult,
                     );
+                    clearFailedLookup(code);
+                    // Cache the successful result
+                    destinationCache.set(destCacheKey, {
+                        destination: nominatimResult,
+                        timestamp: Date.now()
+                    });
+                    return nominatimResult;
                 } else {
                     console.log("Place name geocoding also failed");
+                    recordFailedLookup(code);
+                    return null;
                 }
-                return nominatimResult;
             }
 
             function deg2rad(deg) {
@@ -1091,42 +1197,61 @@
                 let navInputUpper = navInputValue.toUpperCase();
 
                 if (navInputValue) {
-                    try {
-                        let destination = await resolveWithGeocoding(
-                            navInputUpper,
+                    // Only resolve if input has changed and we're not already resolving
+                    if (navInputValue !== lastNavInput && !isResolvingDestination) {
+                        isResolvingDestination = true;
+                        lastNavInput = navInputValue;
+
+                        try {
+                            let destination = await resolveWithGeocoding(
+                                navInputUpper,
+                                coords.latitude,
+                                coords.longitude,
+                            );
+                            if (destination) {
+                                lastKnownDestination = destination;
+                            }
+                            // If resolution failed, keep using lastKnownDestination if it exists
+                        } catch (e) {
+                            console.warn("Error resolving destination:", e);
+                            // Keep using lastKnownDestination if it exists
+                        } finally {
+                            isResolvingDestination = false;
+                        }
+                    }
+
+                    // Use last known destination if available
+                    if (lastKnownDestination) {
+                        let distance = dist(
                             coords.latitude,
                             coords.longitude,
+                            lastKnownDestination.latitudeCenter,
+                            lastKnownDestination.longitudeCenter,
                         );
-                        if (destination) {
-                            let distance = dist(
-                                coords.latitude,
-                                coords.longitude,
-                                destination.latitudeCenter,
-                                destination.longitudeCenter,
-                            );
-                            let direction = dirfunc(
-                                coords.latitude,
-                                coords.longitude,
-                                destination.latitudeCenter,
-                                destination.longitudeCenter,
-                            );
-                            document.getElementById("nav2").innerHTML =
-                                `Target is ~${distance}m away (${direction})`;
+                        let direction = dirfunc(
+                            coords.latitude,
+                            coords.longitude,
+                            lastKnownDestination.latitudeCenter,
+                            lastKnownDestination.longitudeCenter,
+                        );
+                        document.getElementById("nav2").innerHTML =
+                            `Target is ~${distance}m away (${direction})`;
 
-                            // Update compass and map for manual refresh
-                            updateCompass(
-                                coords.latitude,
-                                coords.longitude,
-                                destination.latitudeCenter,
-                                destination.longitudeCenter,
-                            );
-                            updateMiniMap(
-                                coords.latitude,
-                                coords.longitude,
-                                destination.latitudeCenter,
-                                destination.longitudeCenter,
-                            );
-                        } else {
+                        // Update compass and map for manual refresh
+                        updateCompass(
+                            coords.latitude,
+                            coords.longitude,
+                            lastKnownDestination.latitudeCenter,
+                            lastKnownDestination.longitudeCenter,
+                        );
+                        updateMiniMap(
+                            coords.latitude,
+                            coords.longitude,
+                            lastKnownDestination.latitudeCenter,
+                            lastKnownDestination.longitudeCenter,
+                        );
+                    } else if (!isResolvingDestination) {
+                        if (!lastKnownGoodDestination) {
                             document.getElementById("nav2").innerHTML =
                                 "(Location not found - invalid OLC or unknown place)";
                             document.getElementById(
@@ -1137,14 +1262,36 @@
                                 coords.latitude,
                                 coords.longitude,
                             );
+                        } else {
+                            // Use last known good destination
+                            let distance = dist(
+                                coords.latitude,
+                                coords.longitude,
+                                lastKnownGoodDestination.latitudeCenter,
+                                lastKnownGoodDestination.longitudeCenter,
+                            );
+                            let direction = dirfunc(
+                                coords.latitude,
+                                coords.longitude,
+                                lastKnownGoodDestination.latitudeCenter,
+                                lastKnownGoodDestination.longitudeCenter,
+                            );
+                            document.getElementById("nav2").innerHTML =
+                                `Target is ~${distance}m away (${direction}) [cached]`;
+
+                            updateCompass(
+                                coords.latitude,
+                                coords.longitude,
+                                lastKnownGoodDestination.latitudeCenter,
+                                lastKnownGoodDestination.longitudeCenter,
+                            );
+                            updateMiniMap(
+                                coords.latitude,
+                                coords.longitude,
+                                lastKnownGoodDestination.latitudeCenter,
+                                lastKnownGoodDestination.longitudeCenter,
+                            );
                         }
-                    } catch (e) {
-                        console.error(
-                            "Error during manual navigation refresh:",
-                            e,
-                        );
-                        document.getElementById("nav2").innerHTML =
-                            "(Error calculating distance)";
                     }
                 } else {
                     document.getElementById("nav2").innerHTML = nav2default;
@@ -1262,54 +1409,22 @@
                     .getElementById("navinput")
                     .value.trim();
                 if (navInputValue) {
-                    try {
-                        let destination = await resolveWithGeocoding(
-                            navInputValue.toUpperCase(),
-                            coords.latitude,
-                            coords.longitude,
-                        );
-                        if (destination) {
-                            let distance = dist(
-                                coords.latitude,
-                                coords.longitude,
-                                destination.latitudeCenter,
-                                destination.longitudeCenter,
-                            );
-                            let direction = dirfunc(
-                                coords.latitude,
-                                coords.longitude,
-                                destination.latitudeCenter,
-                                destination.longitudeCenter,
-                            );
-                            document.getElementById("nav2").innerHTML =
-                                `Target is ~${distance}m away (${direction})`;
+                    // Only resolve if input has changed and we're not already resolving
+                    if (navInputValue !== lastNavInput && !isResolvingDestination) {
+                        isResolvingDestination = true;
+                        lastNavInput = navInputValue;
 
-                            // Update compass and map for manual location
-                            updateCompass(
-                                coords.latitude,
-                                coords.longitude,
-                                destination.latitudeCenter,
-                                destination.longitudeCenter,
-                            );
-                            updateMiniMap(
-                                coords.latitude,
-                                coords.longitude,
-                                destination.latitudeCenter,
-                                destination.longitudeCenter,
-                            );
-                        } else {
-                            document.getElementById(
-                                "direction-compass",
-                            ).style.display = "none";
-                            // Show current location only when no destination found
-                            showCurrentLocationOnMap(
+                        try {
+                            let destination = await resolveWithGeocoding(
+                                navInputValue.toUpperCase(),
                                 coords.latitude,
                                 coords.longitude,
                             );
-                        }
-                    } catch (e) {
-                        console.error(
-                            "Error updating navigation with manual location:",
+                            if (destination) {
+                                lastKnownDestination = destination;
+                            }
+                        } catch (e) {
+                            console.warn("Error resolving"Error updating navigation with manual location:",
                             e,
                         );
                     }
@@ -1322,6 +1437,11 @@
             let orientationPermissionRequested = false;
             let lastOrientationUpdate = 0;
             let orientationTimeout = null;
+
+            // Navigation state management
+            let lastKnownDestination = null;
+            let lastNavInput = "";
+            let isResolvingDestination = false;
 
             // Calculate bearing between two points
             function calculateBearing(lat1, lon1, lat2, lon2) {
@@ -1379,13 +1499,6 @@
                     );
                     isOrientationSupported = true;
                     console.log("Device orientation enabled");
-
-                    // Update compass status if compass is visible
-                    const compassStatus =
-                        document.getElementById("compass-status");
-                    if (compassStatus) {
-                        compassStatus.style.display = "block";
-                    }
                 }
             }
 
@@ -1436,16 +1549,6 @@
                 if (timeSinceLastUpdate > 10000 && isOrientationSupported) {
                     // Orientation hasn't updated in 10 seconds, might have stopped
                     console.warn("Device orientation appears to have stopped");
-                    const compassStatus =
-                        document.getElementById("compass-status");
-                    if (
-                        compassStatus &&
-                        compassStatus.style.display === "block"
-                    ) {
-                        compassStatus.innerHTML =
-                            "🧭 Compass rotation may be inactive";
-                        compassStatus.style.color = "#ffc107";
-                    }
                 }
             }
 
@@ -1483,9 +1586,6 @@
                 // Apply device orientation if supported
                 if (isOrientationSupported) {
                     compass.style.transform = `rotate(${-deviceHeading}deg)`;
-                    // Show compass status
-                    document.getElementById("compass-status").style.display =
-                        "block";
                 } else {
                     // Show a button to enable orientation on iOS
                     if (
@@ -1496,9 +1596,6 @@
                     ) {
                         showOrientationButton();
                     }
-                    // Hide compass status
-                    document.getElementById("compass-status").style.display =
-                        "none";
                 }
 
                 // Update mini map
@@ -1710,6 +1807,11 @@
                                 coords.longitude,
                             );
                             if (destination) {
+                                // Update last known good destination
+                                lastKnownGoodDestination = destination;
+                                lastKnownGoodInput = navInputValue;
+                                clearFailedLookup(navInputValue);
+
                                 let destinationOlc = OpenLocationCode.encode(
                                     destination.latitudeCenter,
                                     destination.longitudeCenter,
@@ -1776,6 +1878,7 @@
                                     coords.latitude,
                                     coords.longitude,
                                 );
+                                recordFailedLookup(navInputValue);
                                 messages(
                                     "geo" + currentOlc.substring(0, 6),
                                     document.getElementById("messages"),

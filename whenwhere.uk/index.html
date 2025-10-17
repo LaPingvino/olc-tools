@@ -156,17 +156,159 @@
                 padding: 10px 15px;
                 border: 1px solid var(--border-color);
                 border-radius: 4px;
-                width: calc(100% - 32px); /* Full width with padding */
-                max-width: 250px; /* Max width for larger screens */
-                margin: 10px auto;
-                display: block;
+                width: calc(
+                    100% - 80px
+                ); /* Adjusted width to account for button */
+                max-width: 200px; /* Adjusted max width */
+                margin: 10px 5px 10px 0;
+                display: inline-block;
                 box-sizing: border-box;
+                vertical-align: middle;
             }
 
             #navinput:focus {
                 outline: none;
                 border-color: var(--primary-color);
                 box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            }
+
+            #refresh-nav {
+                background: var(--primary-color);
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 10px 12px;
+                margin: 10px 0;
+                cursor: pointer;
+                font-size: 1em;
+                display: inline-block;
+                vertical-align: middle;
+                height: 44px; /* Match input height */
+                box-sizing: border-box;
+            }
+
+            #refresh-nav:hover {
+                background: #0056b3;
+            }
+
+            #refresh-nav:active {
+                transform: translateY(1px);
+            }
+
+            #manual-location-section {
+                background: #f8f9fa;
+                border: 1px solid var(--border-color);
+                border-radius: 4px;
+                padding: 15px;
+                margin: 20px 0;
+                display: none;
+            }
+
+            #manual-location {
+                font-family: "Roboto Slab", serif;
+                font-size: 1em;
+                padding: 10px 15px;
+                border: 1px solid var(--border-color);
+                border-radius: 4px;
+                width: calc(100% - 80px);
+                max-width: 200px;
+                margin: 10px 5px 10px 0;
+                display: inline-block;
+                box-sizing: border-box;
+                vertical-align: middle;
+            }
+
+            #set-location-btn {
+                background: var(--primary-color);
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 10px 12px;
+                margin: 10px 0;
+                cursor: pointer;
+                font-size: 1em;
+                display: inline-block;
+                vertical-align: middle;
+                height: 44px;
+                box-sizing: border-box;
+            }
+
+            #set-location-btn:hover {
+                background: #0056b3;
+            }
+
+            #enable-manual-location {
+                background: #ffc107;
+                color: #212529;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 12px;
+                margin: 10px 0;
+                cursor: pointer;
+                font-size: 0.9em;
+                display: block;
+            }
+
+            #enable-manual-location:hover {
+                background: #e0a800;
+            }
+
+            #direction-compass {
+                width: 100px;
+                height: 100px;
+                border: 2px solid var(--primary-color);
+                border-radius: 50%;
+                margin: 20px auto;
+                position: relative;
+                background: #f8f9fa;
+                display: none;
+            }
+
+            #direction-arrow {
+                position: absolute;
+                top: 5px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 24px;
+                transition: transform 0.3s ease;
+                transform-origin: center 45px;
+            }
+
+            #compass-labels {
+                position: relative;
+                width: 100px;
+                height: 100px;
+            }
+
+            .compass-label {
+                position: absolute;
+                font-size: 12px;
+                font-weight: bold;
+                color: var(--secondary-color);
+            }
+
+            .compass-label.north {
+                top: 2px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            .compass-label.south {
+                bottom: 2px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            .compass-label.east {
+                right: 2px;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+
+            .compass-label.west {
+                left: 2px;
+                top: 50%;
+                transform: translateY(-50%);
             }
 
             #nav1,
@@ -259,7 +401,17 @@
                     font-size: 2em;
                 }
                 #navinput {
-                    width: 100%; /* Full width on small screens */
+                    width: calc(
+                        100% - 60px
+                    ); /* Full width minus button on small screens */
+                    max-width: none;
+                }
+                #refresh-nav {
+                    margin-left: 5px;
+                }
+                #manual-location {
+                    width: calc(100% - 60px);
+                    max-width: none;
                 }
                 .action-buttons button {
                     font-size: 0.8em;
@@ -294,12 +446,68 @@
 
             <div id="nav">
                 <span id="nav1">Go to:</span>
-                <input
-                    id="navinput"
-                    placeholder="Enter OLC, short code + location, or place name (e.g., 9G8F+6W London)"
-                    type="text"
-                />
+                <div style="text-align: center">
+                    <input
+                        id="navinput"
+                        placeholder="Enter OLC, short code + location, or place name (e.g., 9G8F+6W London)"
+                        type="text"
+                    />
+                    <button
+                        id="refresh-nav"
+                        onclick="refreshNavigationEnhanced()"
+                        title="Recalculate distance"
+                    >
+                        🔄
+                    </button>
+                </div>
                 <span id="nav2">(enter OLC)</span>
+
+                <!-- Direction Compass -->
+                <div id="direction-compass">
+                    <div id="compass-labels">
+                        <div class="compass-label north">N</div>
+                        <div class="compass-label south">S</div>
+                        <div class="compass-label east">E</div>
+                        <div class="compass-label west">W</div>
+                    </div>
+                    <div id="direction-arrow">🧭</div>
+                </div>
+            </div>
+
+            <button
+                id="enable-manual-location"
+                onclick="toggleManualLocation()"
+                style="display: none"
+            >
+                📍 Enter location manually
+            </button>
+
+            <div id="manual-location-section">
+                <div style="margin-bottom: 10px">
+                    <strong>Manual Location Entry</strong><br />
+                    <small
+                        >Enter your current location when GPS is
+                        unavailable</small
+                    >
+                </div>
+                <div style="text-align: center">
+                    <input
+                        id="manual-location"
+                        placeholder="Enter your current location (e.g., London, UK)"
+                        type="text"
+                    />
+                    <button id="set-location-btn" onclick="setManualLocation()">
+                        Set
+                    </button>
+                </div>
+                <div
+                    id="manual-location-status"
+                    style="
+                        margin-top: 10px;
+                        font-size: 0.9em;
+                        color: var(--secondary-color);
+                    "
+                ></div>
             </div>
 
             <hr />
@@ -573,6 +781,256 @@
                 return deg * (Math.PI / 180);
             }
 
+            // Manual refresh function for navigation
+            async function refreshNavigation() {
+                navigator.geolocation.getCurrentPosition(
+                    async function (position) {
+                        console.log("Manual navigation refresh triggered");
+                        document.getElementById("nav2").innerHTML =
+                            "Refreshing...";
+
+                        let coords = position.coords;
+                        let navInputValue = document
+                            .getElementById("navinput")
+                            .value.trim();
+                        let navInputUpper = navInputValue.toUpperCase();
+
+                        if (navInputValue) {
+                            try {
+                                let destination = await resolveWithGeocoding(
+                                    navInputUpper,
+                                    coords.latitude,
+                                    coords.longitude,
+                                );
+                                if (destination) {
+                                    let distance = dist(
+                                        coords.latitude,
+                                        coords.longitude,
+                                        destination.latitudeCenter,
+                                        destination.longitudeCenter,
+                                    );
+                                    let direction = dirfunc(
+                                        coords.latitude,
+                                        coords.longitude,
+                                        destination.latitudeCenter,
+                                        destination.longitudeCenter,
+                                    );
+                                    document.getElementById("nav2").innerHTML =
+                                        `Target is ~${distance}m away (${direction})`;
+
+                                    // Update compass for manual refresh
+                                    updateCompass(
+                                        coords.latitude,
+                                        coords.longitude,
+                                        destination.latitudeCenter,
+                                        destination.longitudeCenter,
+                                    );
+                                } else {
+                                    document.getElementById("nav2").innerHTML =
+                                        "(Location not found - invalid OLC or unknown place)";
+                                    document.getElementById(
+                                        "direction-compass",
+                                    ).style.display = "none";
+                                }
+                            } catch (e) {
+                                console.error(
+                                    "Error during manual navigation refresh:",
+                                    e,
+                                );
+                                document.getElementById("nav2").innerHTML =
+                                    "(Error calculating distance)";
+                            }
+                        } else {
+                            document.getElementById("nav2").innerHTML =
+                                nav2default;
+                        }
+                    },
+                    function (error) {
+                        console.error(
+                            "Geolocation error during manual refresh:",
+                            error,
+                        );
+                        document.getElementById("nav2").innerHTML =
+                            "(Cannot get current location)";
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000,
+                    },
+                );
+            }
+
+            // Enhanced refresh that works with manual location too
+            async function refreshNavigationEnhanced() {
+                if (isManualLocationMode && manualLocationCoords) {
+                    // Use manual location
+                    document.getElementById("nav2").innerHTML = "Refreshing...";
+                    await updateDisplayWithManualLocation();
+                } else {
+                    // Use GPS
+                    refreshNavigation();
+                }
+            }
+
+            // Manual location variables
+            let manualLocationCoords = null;
+            let isManualLocationMode = false;
+
+            // Toggle manual location input
+            function toggleManualLocation() {
+                const section = document.getElementById(
+                    "manual-location-section",
+                );
+                if (section.style.display === "none") {
+                    section.style.display = "block";
+                } else {
+                    section.style.display = "none";
+                }
+            }
+
+            // Set manual location using Nominatim
+            async function setManualLocation() {
+                const input = document.getElementById("manual-location");
+                const status = document.getElementById(
+                    "manual-location-status",
+                );
+                const locationText = input.value.trim();
+
+                if (!locationText) {
+                    status.innerHTML = "Please enter a location";
+                    return;
+                }
+
+                status.innerHTML = "Looking up location...";
+
+                try {
+                    const result = await geocodeWithNominatim(locationText);
+                    if (result) {
+                        manualLocationCoords = {
+                            latitude: result.latitudeCenter,
+                            longitude: result.longitudeCenter,
+                            accuracy: 1000, // Assume 1km accuracy for manual locations
+                        };
+                        isManualLocationMode = true;
+
+                        status.innerHTML = `Location set to: ${result.latitudeCenter.toFixed(6)}, ${result.longitudeCenter.toFixed(6)}`;
+
+                        // Update the display with manual location
+                        updateDisplayWithManualLocation();
+
+                        // Hide the manual location section
+                        document.getElementById(
+                            "manual-location-section",
+                        ).style.display = "none";
+                    } else {
+                        status.innerHTML =
+                            "Location not found. Try a different search term.";
+                    }
+                } catch (error) {
+                    console.error("Error setting manual location:", error);
+                    status.innerHTML = "Error looking up location.";
+                }
+            }
+
+            // Update display with manual location
+            async function updateDisplayWithManualLocation() {
+                if (!manualLocationCoords) return;
+
+                const coords = manualLocationCoords;
+
+                // Update the OLC display
+                let length = 8; // Medium precision for manual locations
+                currentOlc = OpenLocationCode.encode(
+                    coords.latitude,
+                    coords.longitude,
+                    length,
+                );
+
+                document.getElementById("code").title = currentOlc;
+                document.getElementById("region").innerHTML =
+                    currentOlc.substring(0, 4);
+                document.getElementById("local").innerHTML =
+                    currentOlc.substring(4);
+                document.getElementById("accuracy").innerHTML =
+                    `Manual location (±${Math.floor(coords.accuracy)}m)`;
+
+                // Update navigation if there's a destination
+                let navInputValue = document
+                    .getElementById("navinput")
+                    .value.trim();
+                if (navInputValue) {
+                    try {
+                        let destination = await resolveWithGeocoding(
+                            navInputValue.toUpperCase(),
+                            coords.latitude,
+                            coords.longitude,
+                        );
+                        if (destination) {
+                            let distance = dist(
+                                coords.latitude,
+                                coords.longitude,
+                                destination.latitudeCenter,
+                                destination.longitudeCenter,
+                            );
+                            let direction = dirfunc(
+                                coords.latitude,
+                                coords.longitude,
+                                destination.latitudeCenter,
+                                destination.longitudeCenter,
+                            );
+                            document.getElementById("nav2").innerHTML =
+                                `Target is ~${distance}m away (${direction})`;
+
+                            // Update compass for manual location
+                            updateCompass(
+                                coords.latitude,
+                                coords.longitude,
+                                destination.latitudeCenter,
+                                destination.longitudeCenter,
+                            );
+                        } else {
+                            document.getElementById(
+                                "direction-compass",
+                            ).style.display = "none";
+                        }
+                    } catch (e) {
+                        console.error(
+                            "Error updating navigation with manual location:",
+                            e,
+                        );
+                    }
+                }
+            }
+
+            // Calculate bearing between two points
+            function calculateBearing(lat1, lon1, lat2, lon2) {
+                const dLon = deg2rad(lon2 - lon1);
+                const y = Math.sin(dLon) * Math.cos(deg2rad(lat2));
+                const x =
+                    Math.cos(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) -
+                    Math.sin(deg2rad(lat1)) *
+                        Math.cos(deg2rad(lat2)) *
+                        Math.cos(dLon);
+                let bearing = Math.atan2(y, x) * (180 / Math.PI);
+                return (bearing + 360) % 360; // Normalize to 0-360
+            }
+
+            // Update compass arrow direction
+            function updateCompass(fromLat, fromLon, toLat, toLon) {
+                const bearing = calculateBearing(
+                    fromLat,
+                    fromLon,
+                    toLat,
+                    toLon,
+                );
+                const arrow = document.getElementById("direction-arrow");
+                const compass = document.getElementById("direction-compass");
+
+                compass.style.display = "block";
+                arrow.style.transform = `translateX(-50%) rotate(${bearing}deg)`;
+            }
+
             navigator.geolocation.watchPosition(
                 async function (position) {
                     if (isCodeInteractionPaused) {
@@ -667,6 +1125,14 @@
                                 document.getElementById("nav2").innerHTML =
                                     `Target is ~${distance}m away (${direction})`;
 
+                                // Update compass
+                                updateCompass(
+                                    coords.latitude,
+                                    coords.longitude,
+                                    destination.latitudeCenter,
+                                    destination.longitudeCenter,
+                                );
+
                                 if (
                                     location.hash.substring(1) !== navInputValue
                                 ) {
@@ -686,6 +1152,10 @@
                             } else {
                                 document.getElementById("nav2").innerHTML =
                                     "(Location not found - invalid OLC or unknown place)";
+                                // Hide compass when destination not found
+                                document.getElementById(
+                                    "direction-compass",
+                                ).style.display = "none";
                                 messages(
                                     "geo" + currentOlc.substring(0, 6),
                                     document.getElementById("messages"),
@@ -695,6 +1165,10 @@
                         } else {
                             document.getElementById("nav2").innerHTML =
                                 nav2default;
+                            // Hide compass when no destination
+                            document.getElementById(
+                                "direction-compass",
+                            ).style.display = "none";
                             document.getElementById("navapp").href =
                                 "https://www.google.com/maps/@?api=1&map_action=map&center=" +
                                 coords.latitude +
@@ -724,7 +1198,13 @@
                         "GEOLOCATION ERROR(" + err.code + "): " + err.message,
                     );
                     document.getElementById("accuracy").innerHTML =
-                        "Could not get location. Error: " + err.message;
+                        "Could not get location. Use manual entry below.";
+
+                    // Show manual location option when GPS fails
+                    document.getElementById(
+                        "enable-manual-location",
+                    ).style.display = "block";
+
                     let fallbackOlc = location.hash.substring(1) || "8FXC0000+";
                     if (
                         typeof OpenLocationCode !== "undefined" &&

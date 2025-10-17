@@ -20,6 +20,11 @@
         <script src="markdown.min.js"></script>
         <script src="localmessages.js"></script>
         <script src="openlocationcode.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <meta name="viewport" content="initial-scale=1" />
         <meta name="theme-color" value="#f8f9fa" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -266,12 +271,16 @@
 
             #direction-arrow {
                 position: absolute;
-                top: 5px;
+                top: 10px;
                 left: 50%;
+                width: 0;
+                height: 0;
+                border-left: 8px solid transparent;
+                border-right: 8px solid transparent;
+                border-bottom: 20px solid var(--primary-color);
                 transform: translateX(-50%);
-                font-size: 24px;
                 transition: transform 0.3s ease;
-                transform-origin: center 45px;
+                transform-origin: center 35px;
             }
 
             #compass-labels {
@@ -309,6 +318,15 @@
                 left: 2px;
                 top: 50%;
                 transform: translateY(-50%);
+            }
+
+            #mini-map {
+                width: 200px;
+                height: 150px;
+                border: 2px solid var(--primary-color);
+                border-radius: 8px;
+                margin: 20px auto;
+                display: none;
             }
 
             #nav1,
@@ -470,8 +488,11 @@
                         <div class="compass-label east">E</div>
                         <div class="compass-label west">W</div>
                     </div>
-                    <div id="direction-arrow">🧭</div>
+                    <div id="direction-arrow"></div>
                 </div>
+
+                <!-- Mini Map -->
+                <div id="mini-map"></div>
             </div>
 
             <button
@@ -781,96 +802,118 @@
                 return deg * (Math.PI / 180);
             }
 
+            // Store the last known location for manual refresh
+            let lastKnownLocation = null;
+
             // Manual refresh function for navigation
             async function refreshNavigation() {
-                navigator.geolocation.getCurrentPosition(
-                    async function (position) {
-                        console.log("Manual navigation refresh triggered");
+                console.log("Manual navigation refresh triggered");
+                document.getElementById("nav2").innerHTML = "Refreshing...";
+
+                let coords = null;
+
+                // Try to use manual location first
+                if (isManualLocationMode && manualLocationCoords) {
+                    coords = manualLocationCoords;
+                    console.log("Using manual location for refresh");
+                }
+                // Try to use last known GPS location
+                else if (lastKnownLocation) {
+                    coords = lastKnownLocation;
+                    console.log("Using cached GPS location for refresh");
+                }
+                // Try to get fresh GPS location as last resort
+                else {
+                    try {
+                        const position = await new Promise(
+                            (resolve, reject) => {
+                                navigator.geolocation.getCurrentPosition(
+                                    resolve,
+                                    reject,
+                                    {
+                                        enableHighAccuracy: true,
+                                        timeout: 5000,
+                                        maximumAge: 30000,
+                                    },
+                                );
+                            },
+                        );
+                        coords = position.coords;
+                        lastKnownLocation = coords;
+                        console.log("Got fresh GPS location for refresh");
+                    } catch (error) {
+                        console.error("All location methods failed:", error);
                         document.getElementById("nav2").innerHTML =
-                            "Refreshing...";
+                            "(No location available - try manual location mode)";
+                        return;
+                    }
+                }
 
-                        let coords = position.coords;
-                        let navInputValue = document
-                            .getElementById("navinput")
-                            .value.trim();
-                        let navInputUpper = navInputValue.toUpperCase();
+                // Now proceed with navigation calculation
+                let navInputValue = document
+                    .getElementById("navinput")
+                    .value.trim();
+                let navInputUpper = navInputValue.toUpperCase();
 
-                        if (navInputValue) {
-                            try {
-                                let destination = await resolveWithGeocoding(
-                                    navInputUpper,
-                                    coords.latitude,
-                                    coords.longitude,
-                                );
-                                if (destination) {
-                                    let distance = dist(
-                                        coords.latitude,
-                                        coords.longitude,
-                                        destination.latitudeCenter,
-                                        destination.longitudeCenter,
-                                    );
-                                    let direction = dirfunc(
-                                        coords.latitude,
-                                        coords.longitude,
-                                        destination.latitudeCenter,
-                                        destination.longitudeCenter,
-                                    );
-                                    document.getElementById("nav2").innerHTML =
-                                        `Target is ~${distance}m away (${direction})`;
+                if (navInputValue) {
+                    try {
+                        let destination = await resolveWithGeocoding(
+                            navInputUpper,
+                            coords.latitude,
+                            coords.longitude,
+                        );
+                        if (destination) {
+                            let distance = dist(
+                                coords.latitude,
+                                coords.longitude,
+                                destination.latitudeCenter,
+                                destination.longitudeCenter,
+                            );
+                            let direction = dirfunc(
+                                coords.latitude,
+                                coords.longitude,
+                                destination.latitudeCenter,
+                                destination.longitudeCenter,
+                            );
+                            document.getElementById("nav2").innerHTML =
+                                `Target is ~${distance}m away (${direction})`;
 
-                                    // Update compass for manual refresh
-                                    updateCompass(
-                                        coords.latitude,
-                                        coords.longitude,
-                                        destination.latitudeCenter,
-                                        destination.longitudeCenter,
-                                    );
-                                } else {
-                                    document.getElementById("nav2").innerHTML =
-                                        "(Location not found - invalid OLC or unknown place)";
-                                    document.getElementById(
-                                        "direction-compass",
-                                    ).style.display = "none";
-                                }
-                            } catch (e) {
-                                console.error(
-                                    "Error during manual navigation refresh:",
-                                    e,
-                                );
-                                document.getElementById("nav2").innerHTML =
-                                    "(Error calculating distance)";
-                            }
+                            // Update compass for manual refresh
+                            updateCompass(
+                                coords.latitude,
+                                coords.longitude,
+                                destination.latitudeCenter,
+                                destination.longitudeCenter,
+                            );
                         } else {
                             document.getElementById("nav2").innerHTML =
-                                nav2default;
+                                "(Location not found - invalid OLC or unknown place)";
+                            document.getElementById(
+                                "direction-compass",
+                            ).style.display = "none";
+                            document.getElementById("mini-map").style.display =
+                                "none";
                         }
-                    },
-                    function (error) {
+                    } catch (e) {
                         console.error(
-                            "Geolocation error during manual refresh:",
-                            error,
+                            "Error during manual navigation refresh:",
+                            e,
                         );
                         document.getElementById("nav2").innerHTML =
-                            "(Cannot get current location)";
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 60000,
-                    },
-                );
+                            "(Error calculating distance)";
+                    }
+                } else {
+                    document.getElementById("nav2").innerHTML = nav2default;
+                    document.getElementById("direction-compass").style.display =
+                        "none";
+                    document.getElementById("mini-map").style.display = "none";
+                }
             }
 
             // Enhanced refresh that works with manual location too
             async function refreshNavigationEnhanced() {
-                if (isManualLocationMode && manualLocationCoords) {
-                    // Use manual location
-                    document.getElementById("nav2").innerHTML = "Refreshing...";
-                    await updateDisplayWithManualLocation();
-                } else {
-                    // Use GPS
-                    refreshNavigation();
-                }
+                // The refreshNavigation function now handles all cases automatically
+                await refreshNavigation();
             }
 
             // Manual location variables
@@ -993,6 +1036,8 @@
                             document.getElementById(
                                 "direction-compass",
                             ).style.display = "none";
+                            document.getElementById("mini-map").style.display =
+                                "none";
                         }
                     } catch (e) {
                         console.error(
@@ -1029,6 +1074,71 @@
 
                 compass.style.display = "block";
                 arrow.style.transform = `translateX(-50%) rotate(${bearing}deg)`;
+
+                // Update mini map
+                updateMiniMap(fromLat, fromLon, toLat, toLon);
+            }
+
+            let miniMap = null;
+            let currentLocationMarker = null;
+            let destinationMarker = null;
+
+            // Initialize or update mini map
+            function updateMiniMap(fromLat, fromLon, toLat, toLon) {
+                const mapContainer = document.getElementById("mini-map");
+                mapContainer.style.display = "block";
+
+                if (!miniMap) {
+                    // Initialize map
+                    miniMap = L.map("mini-map", {
+                        zoomControl: false,
+                        scrollWheelZoom: false,
+                        doubleClickZoom: false,
+                        dragging: false,
+                    });
+
+                    // Add tile layer
+                    L.tileLayer(
+                        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        {
+                            attribution: "© OpenStreetMap contributors",
+                        },
+                    ).addTo(miniMap);
+                }
+
+                // Clear existing markers
+                if (currentLocationMarker) {
+                    miniMap.removeLayer(currentLocationMarker);
+                }
+                if (destinationMarker) {
+                    miniMap.removeLayer(destinationMarker);
+                }
+
+                // Add markers
+                currentLocationMarker = L.marker([fromLat, fromLon])
+                    .addTo(miniMap)
+                    .bindPopup("You are here");
+
+                destinationMarker = L.marker([toLat, toLon])
+                    .addTo(miniMap)
+                    .bindPopup("Destination");
+
+                // Add line between points
+                const line = L.polyline(
+                    [
+                        [fromLat, fromLon],
+                        [toLat, toLon],
+                    ],
+                    { color: "red", weight: 3 },
+                ).addTo(miniMap);
+
+                // Fit map to show both points
+                const group = new L.featureGroup([
+                    currentLocationMarker,
+                    destinationMarker,
+                    line,
+                ]);
+                miniMap.fitBounds(group.getBounds().pad(0.1));
             }
 
             navigator.geolocation.watchPosition(
@@ -1063,6 +1173,9 @@
                         coords.longitude,
                         length,
                     );
+
+                    // Cache the current location for manual refresh
+                    lastKnownLocation = coords;
 
                     document.getElementById("code").title = currentOlc; // Update title for buttons
                     document.getElementById("region").innerHTML =
@@ -1156,6 +1269,9 @@
                                 document.getElementById(
                                     "direction-compass",
                                 ).style.display = "none";
+                                document.getElementById(
+                                    "mini-map",
+                                ).style.display = "none";
                                 messages(
                                     "geo" + currentOlc.substring(0, 6),
                                     document.getElementById("messages"),
@@ -1165,10 +1281,12 @@
                         } else {
                             document.getElementById("nav2").innerHTML =
                                 nav2default;
-                            // Hide compass when no destination
+                            // Hide compass and map when no destination
                             document.getElementById(
                                 "direction-compass",
                             ).style.display = "none";
+                            document.getElementById("mini-map").style.display =
+                                "none";
                             document.getElementById("navapp").href =
                                 "https://www.google.com/maps/@?api=1&map_action=map&center=" +
                                 coords.latitude +
